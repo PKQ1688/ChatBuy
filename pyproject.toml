@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "chatbuy"
+version = "0.1.0"
+description = ""
+authors = ["adolf <adolf1321794021@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+talipp = "^2.4.0"
+openai = "^1.55.1"
+python-dotenv = "^1.0.1"
+phidata = "^2.5.33"
+ccxt = "^4.4.34"
+duckdb = "^1.1.3"
+httpx = {extras = ["socks"], version = "^0.27.2"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
