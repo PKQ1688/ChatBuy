@@ -14,4 +14,11 @@ data["macd"] = macd.macd
 data["signal"] = macd.signal
 data["histogram"] = macd.histogram
 
-print(data.head())
+# print(data.head())
+
+bb = BB(20, 2, data["close"])[-1]
+data["bb_upper"] = bb.ub
+data["bb_middle"] = bb.cb
+data["bb_lower"] = bb.lb
+
+data.to_csv("data/BTC_USDT_1d_with_indicators.csv", index=False)
