@@ -1,6 +1,7 @@
 import ccxt
 import pandas as pd
 import time
+import os
 
 # 初始化 Binance 客户端
 exchange = ccxt.binance({"rateLimit": 1200, "enableRateLimit": True})
@@ -47,9 +48,13 @@ def main(symbol="BTC", timeframe="1d", start_date="2017-07-01T00:00:00Z"):
 
     df = fetch_historical_data(symbol_pair, timeframe, start_date)
 
+    # 创建 data 目录（如果不存在）
+    if not os.path.exists("data"):
+        os.makedirs("data")
+
     # 保存为 CSV 文件
     df.to_csv(f"data/{symbol}_USDT_{timeframe}.csv", index=False)
-    print(f"历史数据已保存到 {symbol}_USDT_{timeframe}.csv")
+    print(f"history data is store in {symbol}_USDT_{timeframe}.csv")
 
 
 if __name__ == "__main__":
