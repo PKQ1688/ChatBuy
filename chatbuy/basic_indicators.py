@@ -1,24 +1,26 @@
 import pandas as pd
 
-from talipp.indicators import SMA, MACD, BB
+from talipp.indicators import MACD, BB
 
 data = pd.read_csv("data/BTC_USDT_1d.csv")
 
-# 计算 20 日简单移动平均线
-sma = SMA(20, data["close"])
-data["sma"] = sma
 
 # 计算 MACD 指标
-macd = MACD(12, 26, 9, data["close"])[-1]
-data["macd"] = macd.macd
-data["signal"] = macd.signal
-data["histogram"] = macd.histogram
+macd = MACD(12, 26, 9, data["close"])[:]
+bb = BB(20, 2, data["close"])[:]
 
-# print(data.head())
+for index, row in data.iterrows():
+    if macd[index] is not None:
+        data.at[index, "macd"] = macd[index].macd
+        data.at[index, "signal"] = macd[index].signal
+        data.at[index, "histogram"] = macd[index].histogram
 
-bb = BB(20, 2, data["close"])[-1]
-data["bb_upper"] = bb.ub
-data["bb_middle"] = bb.cb
-data["bb_lower"] = bb.lb
+    if bb[index] is not None:
+        data.at[index, "bb_upper"] = bb[index].ub
+        data.at[index, "bb_middle"] = bb[index].cb
+        data.at[index, "bb_lower"] = bb[index].lb
+
+data = data.infer_objects(copy=False)
+data.fillna(0, inplace=True)
 
 data.to_csv("data/BTC_USDT_1d_with_indicators.csv", index=False)
