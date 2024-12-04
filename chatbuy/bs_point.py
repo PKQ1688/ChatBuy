@@ -1,6 +1,6 @@
 from phi.agent import Agent
 import pandas as pd
-from chatbuy.llm_models import llm_model_0806 as llm_model
+from chatbuy.llm_models import llm_claude as llm_model
 from pathlib import Path
 
 csv_path = Path("data/BTC_USDT_1d_with_indicators.csv")
