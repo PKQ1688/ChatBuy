@@ -17,6 +17,9 @@ httpx = {extras = ["socks"], version = "^0.27.2"}
 pandas = "^2.2.3"
 tabulate = "^0.9.0"
 boto3 = "^1.35.74"
+pydantic-ai = "^0.0.9"
+logfire = "^2.6.1"
+ruff = "^0.8.2"
 
 
 [build-system]
