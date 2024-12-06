@@ -16,7 +16,8 @@ agent = Agent(
 
 @agent.system_prompt
 async def system_prompt() -> str:
-    return dataframes[-60:].to_markdown(index=False)
+    df = dataframes[["timestamp", "histogram"]]
+    return df[-60:].to_markdown(index=False)
 
 
 if __name__ == "__main__":
@@ -27,4 +28,4 @@ if __name__ == "__main__":
     )
 
     print(result.data)
-    print(result.cost)
+    # print(result.cost)
