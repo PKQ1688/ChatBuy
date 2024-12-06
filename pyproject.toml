@@ -1,27 +1,16 @@
-[tool.poetry]
+[project]
 name = "chatbuy"
 version = "0.1.0"
-description = ""
-authors = ["adolf <adolf1321794021@gmail.com>"]
+description = "use gpt to chat with trading bot"
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.12"
-talipp = "^2.4.0"
-openai = "^1.55.1"
-python-dotenv = "^1.0.1"
-phidata = "^2.5.33"
-ccxt = "^4.4.34"
-duckdb = "^1.1.3"
-httpx = {extras = ["socks"], version = "^0.27.2"}
-pandas = "^2.2.3"
-tabulate = "^0.9.0"
-boto3 = "^1.35.74"
-pydantic-ai = "^0.0.9"
-logfire = "^2.6.1"
-ruff = "^0.8.2"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires-python = ">=3.12"
+dependencies = [
+    "ccxt>=4.4.36",
+    "openai>=1.57.0",
+    "pandas>=2.2.3",
+    "pydantic-ai>=0.0.9",
+    "python-dotenv>=1.0.1",
+    "ruff>=0.8.2",
+    "tabulate>=0.9.0",
+    "talipp>=2.4.0",
+]

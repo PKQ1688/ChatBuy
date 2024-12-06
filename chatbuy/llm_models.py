@@ -1,43 +1,29 @@
 import os
 
 from dotenv import load_dotenv
-from phi.embedder.azure_openai import AzureOpenAIEmbedder
-from phi.model.aws.claude import Claude
-from phi.model.azure.openai_chat import AzureOpenAIChat
+from openai import AsyncAzureOpenAI
+
+
+from pydantic_ai.models.openai import OpenAIModel
+
 
 load_dotenv(override=True)
 
-
-llm_model_4o = AzureOpenAIChat(
-    id="gpt4o",
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview"),
+client = AsyncAzureOpenAI(
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT_0806"],
+    api_version=os.environ["AZURE_OPENAI_API_VERSION_0806"],
+    api_key=os.environ["AZURE_OPENAI_API_KEY_0806"],
 )
 
-llm_model_0806 = AzureOpenAIChat(
-    id="4o0806",
-    api_key=os.getenv("AZURE_OPENAI_API_KEY_0806"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT_0806"),
-    api_version=os.getenv("AZURE_OPENAI_API_VERSION_0806", "2024-08-01-preview"),
-    temperature=0.5,
-    top_p=0.95,
-)
-
-llm_claude = Claude(
-    id="anthropic.claude-3-5-sonnet-20241022-v2:0",
-    aws_region=os.getenv("AWS_DEFAULT_REGION"),
-)
-
-embed_model = AzureOpenAIEmbedder(
-    model="text-embedding-3-large",
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-)
+model_0806 = OpenAIModel("4o0806", openai_client=client)
 
 if __name__ == "__main__":
-    from phi.agent.agent import Agent
+    from pydantic_ai import Agent
 
-    agent = Agent(provider=llm_model_0806, markdown=True)  # type: ignore
-    agent.print_response("Share a 2 sentence horror story.")
+    agent = Agent(
+        model=model_0806,
+        system_prompt="Be concise, reply with one sentence.",
+    )
+
+    result = agent.run_sync('Where does "hello world" come from?')
+    print(result.data)

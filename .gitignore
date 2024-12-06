@@ -163,3 +163,5 @@ cython_debug/
 
 poetry.lock
 data/
+.ruff_cache/
+uv.lock
