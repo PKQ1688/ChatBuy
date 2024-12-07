@@ -50,14 +50,29 @@ class OpenAIEngineStructuredOutputs:
         if stop_sequences is None:
             stop_sequences = []
 
-        completion = self.client.beta.chat.completions.parse(
-            model=self.model_name,
-            messages=messages,
-            stop=stop_sequences,
-            temperature=0.7,
-            response_format=grammar,
+        messages = get_clean_message_list(
+            messages,
+            role_conversions=openai_role_conversions,
         )
-        return completion.choices[0].message.parsed
+
+        if grammar is not None:
+            completion = self.client.beta.chat.completions.parse(
+                model=self.model_name,
+                messages=messages,
+                stop=stop_sequences,
+                temperature=0.7,
+                response_format=grammar,
+            )
+            return completion.choices[0].message.parsed
+        else:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                stop=stop_sequences,
+                temperature=0.7,
+                response_format=grammar,
+            )
+            return response.choices[0].message.content
 
 
 llm_engine_4o = OpenAIEngine(model_name="gpt4o")
@@ -81,12 +96,15 @@ if __name__ == "__main__":
     ]
     response1 = llm_engine_4o(messages)
     response2 = llm_engine_4o_mini(messages)
-    response3 = llm_engine_0806(messages, grammar=CalendarEvent)
-    
+    response3 = llm_engine_0806(messages)
+    response4 = llm_engine_0806(messages, grammar=CalendarEvent)
+
     print("=" * 30)
     print(response1)
-    print('-' * 30)
+    print("-" * 30)
     print(response2)
-    print('-' * 30)
+    print("-" * 30)
     print(response3)
+    print("-" * 30)
+    print(response4)
     print("=" * 30)
