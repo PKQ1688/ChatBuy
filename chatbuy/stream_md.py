@@ -7,7 +7,7 @@ from rich.syntax import Syntax
 from rich.text import Text
 
 from pydantic_ai import Agent
-from chatbuy.llm_models import model_4o_mini, model_0806, model_4o
+from scripts.llm_models import model_4o_mini, model_0806, model_4o
 
 agent = Agent()
 
