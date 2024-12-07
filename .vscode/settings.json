@@ -3,6 +3,7 @@
         "ccxt",
         "chatbuy",
         "dataframes",
+        "httpx",
         "logfire",
         "MACD",
         "ohlcv",
