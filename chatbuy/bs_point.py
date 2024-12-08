@@ -31,10 +31,8 @@ if __name__ == "__main__":
     # )
     result = agent.run(
         task=(
-            "你要根据我给你提供的`csv_path`,找到其中列名为histogram指标由负变正和由正变负的所有临界点"
+            "你要根据我给你提供的`csv_path`,找到支撑位和阻力位"
             "你只要看最后60行数据,不需要看完整的表格"
         ),
         csv_path=csv_path,
     )
-
-    print(result)
