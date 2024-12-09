@@ -24,7 +24,7 @@ agent = ReactCodeAgent(
 
 if __name__ == "__main__":
     # import asyncio
-    from rich import print
+    # from rich import print
 
     # result = asyncio.run(
     #     agent.run("找到其中列名为histogram指标由负变正和由正变负的所有临界点")

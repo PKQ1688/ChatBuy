@@ -4,6 +4,7 @@
         "chatbuy",
         "dataframes",
         "httpx",
+        "libmagic",
         "logfire",
         "MACD",
         "ohlcv",
