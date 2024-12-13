@@ -7,10 +7,12 @@
         "libmagic",
         "logfire",
         "MACD",
+        "MIPRO",
         "ohlcv",
         "openbb",
         "phidata",
         "talipp",
+        "trainset",
         "venv"
     ],
     "cSpell.ignorePaths": [
