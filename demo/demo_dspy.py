@@ -19,7 +19,7 @@ trainset = [
 ]
 print(trainset[0])
 
-# react = dspy.ReAct("question -> answer", tools=[search])
+react = dspy.ReAct("question -> answer", tools=[search])
 
 # tp = dspy.MIPROv2(metric=dspy.evaluate.answer_exact_match, auto="light", num_threads=24)
 # optimized_react = tp.compile(react, trainset=trainset)
