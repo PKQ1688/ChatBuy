@@ -3,6 +3,7 @@
         "ccxt",
         "chatbuy",
         "dataframes",
+        "devset",
         "httpx",
         "libmagic",
         "logfire",

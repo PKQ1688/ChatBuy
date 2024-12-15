@@ -36,27 +36,29 @@ lm_o1_mini = dspy.LM(
     max_tokens=10000,
 )
 
-# lm_o1_preview = dspy.LM(
-#     model="azure/o1-preivew",
-#     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-#     api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-#     api_base=os.getenv("AZURE_OPENAI_ENDPOINT"),
-#     temperature=1.0,
-#     max_completion_tokens=10000,
-# )
+lm_o1_preview = dspy.LM(
+    model="azure/o1-preivew",
+    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+    api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+    api_base=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    temperature=1.0,
+    max_completion_tokens=10000,
+    max_tokens=10000,
+)
+
 
 if __name__ == "__main__":
-    res = lm_4o("who are you", temperature=0.7)
-    print("4o:", res[0])
+    # res = lm_4o("who are you", temperature=0.7)
+    # print("4o:", res[0])
 
-    res = lm_4o_mini("who are you", temperature=0.7)
-    print("4o mini:", res[0])
+    # res = lm_4o_mini("who are you", temperature=0.7)
+    # print("4o mini:", res[0])
 
-    res = lm_4o_0806("who are you", temperature=0.7)
-    print("4o 0806:", res[0])
+    # res = lm_4o_0806("who are you", temperature=0.7)
+    # print("4o 0806:", res[0])
 
-    res = lm_o1_mini("who are you")
-    print("o1 mini:", res[0])
+    # res = lm_o1_mini("who are you")
+    # print("o1 mini:", res[0])
 
-    # res = lm_o1_preview("who are you")
-    # print("o1 preview:", res[0])
+    res = lm_o1_preview("who are you")
+    print("o1 preview:", res[0])
