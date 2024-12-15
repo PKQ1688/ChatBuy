@@ -2,6 +2,7 @@ import dspy
 from scripts.dspy_lm import lm_4o_mini as lm
 from dspy.datasets import HotPotQA
 from rich.pretty import pprint
+from dspy.evaluate import Evaluate
 
 dspy.configure(lm=lm)
 
@@ -15,12 +16,30 @@ def search(query: str) -> list[str]:
 
 
 trainset = [
-    x.with_inputs("question") for x in HotPotQA(train_seed=2024, train_size=500).train
+    x.with_inputs("question")
+    for x in HotPotQA(train_seed=2024, train_size=50, dev_size=500).train
 ]
 
-pprint(trainset)
+devset = [
+    x.with_inputs("question")
+    for x in HotPotQA(train_seed=2023, train_size=50, dev_size=500).dev
+]
 
-# react = dspy.ReAct("question -> answer", tools=[search])
+# breakpoint()
+
+pprint(trainset)
+react = dspy.ReAct("question -> answer", tools=[search])
+react.load("demo/optimized_react.json")
+
+
+def validate_answer(example, pred, trace=None):
+    return example.answer.lower() == pred.answer.lower()
+
+
+evaluator = Evaluate(
+    devset=devset, num_threads=1, display_progress=True, display_table=5
+)
+evaluator(react, metric=validate_answer)
 
 # tp = dspy.MIPROv2(metric=dspy.evaluate.answer_exact_match, auto="light", num_threads=24)
 # optimized_react = tp.compile(react, trainset=trainset)
@@ -30,5 +49,5 @@ pprint(trainset)
 # pred = react(question=trainset[0].question)
 
 # print(pred)
-# 
+#
 # lm.inspect_history()
