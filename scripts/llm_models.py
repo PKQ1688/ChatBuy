@@ -19,12 +19,6 @@ model_4o_mini = AzureOpenAIChat(
     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
 )
 
-model_0806 = AzureOpenAIChat(
-    id="4o0806",
-    api_key=os.getenv("AZURE_OPENAI_API_KEY_0806"),
-    api_version=os.getenv("AZURE_OPENAI_API_VERSION_0806"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT_0806"),
-)
 
 if __name__ == "__main__":
     agent = Agent(model=model_0806)
