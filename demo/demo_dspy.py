@@ -29,7 +29,7 @@ devset = [
 
 pprint(trainset)
 react = dspy.ReAct("question -> answer", tools=[search])
-react.load("demo/optimized_react.json")
+# react.load("demo/optimized_react.json")
 
 
 def validate_answer(example, pred, trace=None):
