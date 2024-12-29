@@ -8,13 +8,42 @@ dependencies = [
     "ccxt>=4.4.36",
     "dspy>=2.5.42",
     "httpx[socks]>=0.28.1",
+    "logfire>=2.11.0",
     "openai>=1.57.0",
     "pandas>=2.2.3",
     "phidata>=2.6.6",
     "pillow>=11.0.0",
+    "pydantic-ai>=0.0.12",
     "python-dotenv>=1.0.1",
     "rich>=13.9.4",
     "ruff>=0.8.2",
     "tabulate>=0.9.0",
     "talipp>=2.4.0",
 ]
+
+[tool.ruff.format]
+docstring-code-format = false
+quote-style = "single"
+ 
+[tool.ruff.lint]
+extend-select = [
+  "Q",
+  "RUF100",
+  "C90",
+  "UP",
+  "I",
+  "D"
+]
+flake8-quotes = {inline-quotes = "single", multiline-quotes = "double"}
+isort = {combine-as-imports = true}
+mccabe = {max-complexity = 15}
+ignore = [
+  "D100", # ignore missing docstring in module
+  "D102", # ignore missing docstring in public method
+  "D104", # ignore missing docstring in public package
+  "D105", # ignore missing docstring in magic methods
+  "D107" # ignore missing docstring in __init__ methods
+]
+ 
+[tool.ruff.lint.pydocstyle]
+convention = "google"
