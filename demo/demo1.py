@@ -3,23 +3,19 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 from openai import AsyncAzureOpenAI
-
 from pydantic import BaseModel, Field
-
 from pydantic_ai import Agent, RunContext
-
 from pydantic_ai.models.openai import OpenAIModel
-
 
 load_dotenv(override=True)
 
 client = AsyncAzureOpenAI(
-    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT_0806"],
-    api_version=os.environ["AZURE_OPENAI_API_VERSION_0806"],
-    api_key=os.environ["AZURE_OPENAI_API_KEY_0806"],
+    azure_endpoint=os.environ['AZURE_OPENAI_ENDPOINT_0806'],
+    api_version=os.environ['AZURE_OPENAI_API_VERSION_0806'],
+    api_key=os.environ['AZURE_OPENAI_API_KEY_0806'],
 )
 
-model = OpenAIModel("4o0806", openai_client=client)
+model = OpenAIModel('4o0806', openai_client=client)
 
 
 class DatabaseConn:
@@ -32,14 +28,14 @@ class DatabaseConn:
     @classmethod
     async def customer_name(cls, *, id: int) -> str | None:
         if id == 123:
-            return "John"
+            return 'John'
 
     @classmethod
     async def customer_balance(cls, *, id: int, include_pending: bool) -> float:
         if id == 123:
             return 123.45
         else:
-            raise ValueError("Customer not found")
+            raise ValueError('Customer not found')
 
 
 @dataclass
@@ -49,9 +45,9 @@ class SupportDependencies:
 
 
 class SupportResult(BaseModel):
-    support_advice: str = Field(description="Advice returned to the customer")
-    block_card: bool = Field(description="Whether to block their")
-    risk: int = Field(description="Risk level of query", ge=0, le=10)
+    support_advice: str = Field(description='Advice returned to the customer')
+    block_card: bool = Field(description='Whether to block their')
+    risk: int = Field(description='Risk level of query', ge=0, le=10)
 
 
 support_agent = Agent(
@@ -59,8 +55,8 @@ support_agent = Agent(
     deps_type=SupportDependencies,
     result_type=SupportResult,
     system_prompt=(
-        "You are a support agent in our bank, give the "
-        "customer support and judge the risk level of their query. "
+        'You are a support agent in our bank, give the '
+        'customer support and judge the risk level of their query. '
         "Reply using the customer's name."
     ),
 )
@@ -81,17 +77,17 @@ async def customer_balance(
         id=ctx.deps.customer_id,
         include_pending=include_pending,
     )
-    return f"${balance:.2f}"
+    return f'${balance:.2f}'
 
 
 deps = SupportDependencies(customer_id=123, db=DatabaseConn())
-result = support_agent.run_sync("What is my balance?", deps=deps)
+result = support_agent.run_sync('What is my balance?', deps=deps)
 print(result.data)
 """
 support_advice='Hello John, your current account balance, including pending transactions, is $123.45.' block_card=False risk=1
 """
 
-result = support_agent.run_sync("I just lost my card!", deps=deps)
+result = support_agent.run_sync('I just lost my card!', deps=deps)
 print(result.data)
 """
 support_advice="I'm sorry to hear that, John. We are temporarily blocking your card to prevent unauthorized transactions." block_card=True risk=8
