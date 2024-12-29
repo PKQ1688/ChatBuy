@@ -1,15 +1,15 @@
+import os
+import time
+
 import ccxt
 import pandas as pd
-import time
-import os
 
 # 初始化 Binance 客户端
 exchange = ccxt.binance({'rateLimit': 1200, 'enableRateLimit': True})
 
 
 def fetch_historical_data(symbol, timeframe, start_date, limit=1000):
-    """
-    分批获取 Binance 历史 K 线数据
+    """分批获取 Binance 历史 K 线数据
     :param symbol: 交易对 (如 'BTC/USDT')
     :param timeframe: 时间周期 (如 '1m', '1h', '1d')
     :param start_date: 起始时间 (ISO 格式，如 '2017-07-01T00:00:00Z')

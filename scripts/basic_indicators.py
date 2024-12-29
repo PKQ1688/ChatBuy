@@ -1,6 +1,5 @@
 import pandas as pd
-
-from talipp.indicators import MACD, BB
+from talipp.indicators import BB, MACD
 
 data = pd.read_csv('data/BTC_USDT_1d.csv')
 
