@@ -9,12 +9,13 @@ exchange = ccxt.binance({'rateLimit': 1200, 'enableRateLimit': True})
 
 
 def fetch_historical_data(symbol, timeframe, start_date, limit=1000):
-    """分批获取 Binance 历史 K 线数据
-    :param symbol: 交易对 (如 'BTC/USDT')
-    :param timeframe: 时间周期 (如 '1m', '1h', '1d')
-    :param start_date: 起始时间 (ISO 格式，如 '2017-07-01T00:00:00Z')
-    :param limit: 每次请求的最大条目数 (默认 1000)
-    :return: 包含所有历史数据的 DataFrame
+    """Fetch historical K-line data from Binance in batches.
+
+    :param symbol: Trading pair (e.g., 'BTC/USDT')
+    :param timeframe: Time period (e.g., '1m', '1h', '1d')
+    :param start_date: Start time (ISO format, e.g., '2017-07-01T00:00:00Z')
+    :param limit: Maximum number of entries per request (default 1000)
+    :return: DataFrame containing all historical data
     """
     all_data = []
     since = exchange.parse8601(start_date)
@@ -41,6 +42,13 @@ def fetch_historical_data(symbol, timeframe, start_date, limit=1000):
 
 
 def main(symbol='BTC', timeframe='1d', start_date='2017-07-01T00:00:00Z'):
+    """Fetch and save historical cryptocurrency data from Binance.
+
+    Args:
+        symbol (str): The cryptocurrency symbol (default: 'BTC')
+        timeframe (str): The time interval for data points (default: '1d')
+        start_date (str): The start date in ISO format (default: '2017-07-01T00:00:00Z')
+    """
     # 获取 交易对历史数据
     symbol_pair = f'{symbol}/USDT'
     timeframe = timeframe  # 每天的数据

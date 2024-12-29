@@ -40,11 +40,16 @@ class DatabaseConn:
 
 @dataclass
 class SupportDependencies:
+    """Dependencies required for the support agent including customer ID and database connection."""
     customer_id: int
     db: DatabaseConn
 
 
 class SupportResult(BaseModel):
+    """Model representing the result of a customer support interaction.
+
+    Contains support advice, card blocking status, and risk assessment.
+    """
     support_advice: str = Field(description='Advice returned to the customer')
     block_card: bool = Field(description='Whether to block their')
     risk: int = Field(description='Risk level of query', ge=0, le=10)
@@ -64,6 +69,7 @@ support_agent = Agent(
 
 @support_agent.system_prompt
 async def add_customer_name(ctx: RunContext[SupportDependencies]) -> str:
+    """Add the customer's name to the system prompt for personalized responses."""
     customer_name = await ctx.deps.db.customer_name(id=ctx.deps.customer_id)
     return f"The customer's name is {customer_name!r}"
 

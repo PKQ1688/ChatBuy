@@ -34,6 +34,16 @@ react = dspy.ReAct('question -> answer', tools=[search])
 
 
 def validate_answer(example, pred, trace=None):
+    """Validates if the predicted answer matches the example answer, case-insensitive.
+
+    Args:
+        example: The example object containing the correct answer.
+        pred: The prediction object containing the predicted answer.
+        trace: Optional trace information (default: None).
+
+    Returns:
+        bool: True if the predicted answer matches the example answer (case-insensitive), False otherwise.
+    """
     return example.answer.lower() == pred.answer.lower()
 
 
