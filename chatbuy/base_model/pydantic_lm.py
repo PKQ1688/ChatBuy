@@ -1,15 +1,24 @@
 import os
 
+# import httpx
 from dotenv import load_dotenv
 from openai import AsyncAzureOpenAI
 from pydantic_ai.models.openai import OpenAIModel
 
 load_dotenv(override=True)
 
+# use_proxy = True
+
+# proxies = {
+#     'http://': os.getenv('PROXY_HTTP', 'http://mwg-hkidc.kucoin.net:9090'),
+#     'https://': os.getenv('PROXY_HTTPS', 'http://mwg-hkidc.kucoin.net:9090'),
+# }
+
 client = AsyncAzureOpenAI(
     azure_endpoint=os.environ['AZURE_OPENAI_ENDPOINT'],
     api_version=os.environ['AZURE_OPENAI_API_VERSION'],
     api_key=os.environ['AZURE_OPENAI_API_KEY'],
+    # http_client=httpx.AsyncClient(proxies=proxies, verify=False) if use_proxy else None,
 )
 
 model_4o = OpenAIModel('gpt4o', openai_client=client)

@@ -1,26 +1,29 @@
-from pathlib import Path
+from typing import Literal
 
-from phi.agent.python import PythonAgent
-from phi.file.local.csv import CsvFile
+import logfire
+from pydantic import BaseModel
+from pydantic_ai import Agent, Tool
 
-from chatbuy.base_model.llm_models import model_4o_mini as llm_model
+from chatbuy.base_model.pydantic_lm import model_1120 as llm_model
+from chatbuy.tool.technicals import fake_technical_analyst
 
-cwd = Path(__file__).parent.resolve()
-tmp = cwd.joinpath('tmp')
-if not tmp.exists():
-    tmp.mkdir(exist_ok=True, parents=True)
+logfire.configure()
 
-python_agent = PythonAgent(
+
+class TradingDecision(BaseModel):
+    """A model representing a trading decision."""
+
+    Strategy: str = Literal['LONG', 'SHORT', 'HOLD']
+    Reason: str
+
+
+buy_agent = Agent(
     model=llm_model,
-    base_dir=tmp,
-    files=[
-        CsvFile(
-            path='https://phidata-public.s3.amazonaws.com/demo_data/IMDB-Movie-Data.csv',
-            description='Contains information about movies from IMDB.',
-        )
-    ],
-    markdown=True,
-    pip_install=True,
-    show_tool_calls=True,
+    # system_prompt='Make a trading decision based on the provided data.',
+    tools=[Tool(fake_technical_analyst, takes_ctx=False)],
+    result_type=TradingDecision,
 )
-python_agent.print_response('What is the average rating of movies?')
+
+
+res = buy_agent.run_sync('Make a trading decision based on the provided data.')
+print(res.data)
