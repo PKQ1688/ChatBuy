@@ -1,3 +1,4 @@
+import json
 import math
 
 import numpy as np
@@ -471,3 +472,217 @@ def calculate_obv(prices_df: pd.DataFrame) -> pd.Series:
             obv.append(obv[-1])
     prices_df['OBV'] = obv
     return prices_df['OBV']
+
+
+def technical_analyst_agent(
+    prices_df: pd.DataFrame, show_reasoning: bool = False
+) -> dict:
+    """Sophisticated technical analysis system that combines multiple trading strategies:
+    1. Trend Following
+    2. Mean Reversion
+    3. Momentum
+    4. Volatility Analysis
+    5. Statistical Arbitrage Signals.
+    """  # noqa: D205
+    # Calculate indicators
+    # 1. MACD (Moving Average Convergence Divergence)
+    macd_line, signal_line = calculate_macd(prices_df)
+
+    # 2. RSI (Relative Strength Index)
+    rsi = calculate_rsi(prices_df)
+
+    # 3. Bollinger Bands (Bollinger Bands)
+    upper_band, lower_band = calculate_bollinger_bands(prices_df)
+
+    # 4. OBV (On-Balance Volume)
+    obv = calculate_obv(prices_df)
+
+    # Generate individual signals
+    signals = []
+
+    # MACD signal
+    if (
+        macd_line.iloc[-2] < signal_line.iloc[-2]
+        and macd_line.iloc[-1] > signal_line.iloc[-1]
+    ):
+        signals.append('bullish')
+    elif (
+        macd_line.iloc[-2] > signal_line.iloc[-2]
+        and macd_line.iloc[-1] < signal_line.iloc[-1]
+    ):
+        signals.append('bearish')
+    else:
+        signals.append('neutral')
+
+    # RSI signal
+    if rsi.iloc[-1] < 30:
+        signals.append('bullish')
+    elif rsi.iloc[-1] > 70:
+        signals.append('bearish')
+    else:
+        signals.append('neutral')
+
+    # Bollinger Bands signal
+    current_price = prices_df['close'].iloc[-1]
+    if current_price < lower_band.iloc[-1]:
+        signals.append('bullish')
+    elif current_price > upper_band.iloc[-1]:
+        signals.append('bearish')
+    else:
+        signals.append('neutral')
+
+    # OBV signal
+    obv_slope = obv.diff().iloc[-5:].mean()
+    if obv_slope > 0:
+        signals.append('bullish')
+    elif obv_slope < 0:
+        signals.append('bearish')
+    else:
+        signals.append('neutral')
+
+    # Add reasoning collection
+    reasoning = {
+        'MACD': {
+            'signal': signals[0],
+            'details': f"MACD Line crossed {'above' if signals[0] == 'bullish' else 'below' if signals[0] == 'bearish' else 'neither above nor below'} Signal Line",
+        },
+        'RSI': {
+            'signal': signals[1],
+            'details': f"RSI is {rsi.iloc[-1]:.2f} ({'oversold' if signals[1] == 'bullish' else 'overbought' if signals[1] == 'bearish' else 'neutral'})",
+        },
+        'Bollinger': {
+            'signal': signals[2],
+            'details': f"Price is {'below lower band' if signals[2] == 'bullish' else 'above upper band' if signals[2] == 'bearish' else 'within bands'}",
+        },
+        'OBV': {
+            'signal': signals[3],
+            'details': f'OBV slope is {obv_slope:.2f} ({signals[3]})',
+        },
+    }
+
+    # Determine overall signal
+    bullish_signals = signals.count('bullish')
+    bearish_signals = signals.count('bearish')
+
+    if bullish_signals > bearish_signals:
+        overall_signal = 'bullish'
+    elif bearish_signals > bullish_signals:
+        overall_signal = 'bearish'
+    else:
+        overall_signal = 'neutral'
+
+    # Calculate confidence level based on the proportion of indicators agreeing
+    total_signals = len(signals)
+    confidence = max(bullish_signals, bearish_signals) / total_signals
+
+    # Generate the message content
+    message_content = {
+        'signal': overall_signal,
+        'confidence': f'{round(confidence * 100)}%',
+        'reasoning': {
+            'MACD': reasoning['MACD'],
+            'RSI': reasoning['RSI'],
+            'Bollinger': reasoning['Bollinger'],
+            'OBV': reasoning['OBV'],
+        },
+    }
+
+    # 1. Trend Following Strategy
+    trend_signals = calculate_trend_signals(prices_df)
+
+    # 2. Mean Reversion Strategy
+    mean_reversion_signals = calculate_mean_reversion_signals(prices_df)
+
+    # 3. Momentum Strategy
+    momentum_signals = calculate_momentum_signals(prices_df)
+
+    # 4. Volatility Strategy
+    volatility_signals = calculate_volatility_signals(prices_df)
+
+    # 5. Statistical Arbitrage Signals
+    stat_arb_signals = calculate_stat_arb_signals(prices_df)
+
+    # Combine all signals using a weighted ensemble approach
+    strategy_weights = {
+        'trend': 0.25,
+        'mean_reversion': 0.20,
+        'momentum': 0.25,
+        'volatility': 0.15,
+        'stat_arb': 0.15,
+    }
+
+    combined_signal = weighted_signal_combination(
+        {
+            'trend': trend_signals,
+            'mean_reversion': mean_reversion_signals,
+            'momentum': momentum_signals,
+            'volatility': volatility_signals,
+            'stat_arb': stat_arb_signals,
+        },
+        strategy_weights,
+    )
+
+    # Generate detailed analysis report
+    analysis_report = {
+        'signal': combined_signal['signal'],
+        'confidence': f"{round(combined_signal['confidence'] * 100)}%",
+        'strategy_signals': {
+            'trend_following': {
+                'signal': trend_signals['signal'],
+                'confidence': f"{round(trend_signals['confidence'] * 100)}%",
+                'metrics': normalize_pandas(trend_signals['metrics']),
+            },
+            'mean_reversion': {
+                'signal': mean_reversion_signals['signal'],
+                'confidence': f"{round(mean_reversion_signals['confidence'] * 100)}%",
+                'metrics': normalize_pandas(mean_reversion_signals['metrics']),
+            },
+            'momentum': {
+                'signal': momentum_signals['signal'],
+                'confidence': f"{round(momentum_signals['confidence'] * 100)}%",
+                'metrics': normalize_pandas(momentum_signals['metrics']),
+            },
+            'volatility': {
+                'signal': volatility_signals['signal'],
+                'confidence': f"{round(volatility_signals['confidence'] * 100)}%",
+                'metrics': normalize_pandas(volatility_signals['metrics']),
+            },
+            'statistical_arbitrage': {
+                'signal': stat_arb_signals['signal'],
+                'confidence': f"{round(stat_arb_signals['confidence'] * 100)}%",
+                'metrics': normalize_pandas(stat_arb_signals['metrics']),
+            },
+        },
+    }
+
+    # print(analysis_report)
+    return {
+        'analysis_report': analysis_report,
+    }
+    # Create the technical analyst message
+    # message = HumanMessage(
+    #     content=json.dumps(analysis_report),
+    #     name='technical_analyst_agent',
+    # )
+
+    # if show_reasoning:
+    #     show_agent_reasoning(analysis_report, 'Technical Analyst')
+
+    # return {
+    #     'messages': [message],
+    #     'data': data,
+    # }
+
+
+def fake_technical_analyst():
+    """Generate a fake technical analyst response for testing purposes."""
+    prices = pd.read_csv('data/BTC_USDT_1d.csv')
+    prices = prices[-60:]
+    agent_response = technical_analyst_agent(prices)
+    return json.dumps(agent_response)
+
+
+if __name__ == '__main__':
+    from rich.pretty import pprint
+
+    pprint(fake_technical_analyst())
