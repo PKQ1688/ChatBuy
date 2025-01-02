@@ -20,24 +20,24 @@ def calculate_trend_signals(prices_df):
     medium_trend = ema_21 > ema_55
 
     # Combine signals with confidence weighting
-    trend_strength = adx['adx'].iloc[-1] / 100.0
+    trend_strength = adx["adx"].iloc[-1] / 100.0
 
     if short_trend.iloc[-1] and medium_trend.iloc[-1]:
-        signal = 'bullish'
+        signal = "bullish"
         confidence = trend_strength
     elif not short_trend.iloc[-1] and not medium_trend.iloc[-1]:
-        signal = 'bearish'
+        signal = "bearish"
         confidence = trend_strength
     else:
-        signal = 'neutral'
+        signal = "neutral"
         confidence = 0.5
 
     return {
-        'signal': signal,
-        'confidence': confidence,
-        'metrics': {
-            'adx': float(adx['adx'].iloc[-1]),
-            'trend_strength': float(trend_strength),
+        "signal": signal,
+        "confidence": confidence,
+        "metrics": {
+            "adx": float(adx["adx"].iloc[-1]),
+            "trend_strength": float(trend_strength),
         },
     }
 
@@ -45,9 +45,9 @@ def calculate_trend_signals(prices_df):
 def calculate_mean_reversion_signals(prices_df):
     """Mean reversion strategy using statistical measures and Bollinger Bands."""
     # Calculate z-score of price relative to moving average
-    ma_50 = prices_df['close'].rolling(window=50).mean()
-    std_50 = prices_df['close'].rolling(window=50).std()
-    z_score = (prices_df['close'] - ma_50) / std_50
+    ma_50 = prices_df["close"].rolling(window=50).mean()
+    std_50 = prices_df["close"].rolling(window=50).std()
+    z_score = (prices_df["close"] - ma_50) / std_50
 
     # Calculate Bollinger Bands
     bb_upper, bb_lower = calculate_bollinger_bands(prices_df)
@@ -58,29 +58,29 @@ def calculate_mean_reversion_signals(prices_df):
 
     # Mean reversion signals
     # extreme_z_score = abs(z_score.iloc[-1]) > 2
-    price_vs_bb = (prices_df['close'].iloc[-1] - bb_lower.iloc[-1]) / (
+    price_vs_bb = (prices_df["close"].iloc[-1] - bb_lower.iloc[-1]) / (
         bb_upper.iloc[-1] - bb_lower.iloc[-1]
     )
 
     # Combine signals
     if z_score.iloc[-1] < -2 and price_vs_bb < 0.2:
-        signal = 'bullish'
+        signal = "bullish"
         confidence = min(abs(z_score.iloc[-1]) / 4, 1.0)
     elif z_score.iloc[-1] > 2 and price_vs_bb > 0.8:
-        signal = 'bearish'
+        signal = "bearish"
         confidence = min(abs(z_score.iloc[-1]) / 4, 1.0)
     else:
-        signal = 'neutral'
+        signal = "neutral"
         confidence = 0.5
 
     return {
-        'signal': signal,
-        'confidence': confidence,
-        'metrics': {
-            'z_score': float(z_score.iloc[-1]),
-            'price_vs_bb': float(price_vs_bb),
-            'rsi_14': float(rsi_14.iloc[-1]),
-            'rsi_28': float(rsi_28.iloc[-1]),
+        "signal": signal,
+        "confidence": confidence,
+        "metrics": {
+            "z_score": float(z_score.iloc[-1]),
+            "price_vs_bb": float(price_vs_bb),
+            "rsi_14": float(rsi_14.iloc[-1]),
+            "rsi_28": float(rsi_28.iloc[-1]),
         },
     }
 
@@ -88,14 +88,14 @@ def calculate_mean_reversion_signals(prices_df):
 def calculate_momentum_signals(prices_df):
     """Multi-factor momentum strategy."""
     # Price momentum
-    returns = prices_df['close'].pct_change()
+    returns = prices_df["close"].pct_change()
     mom_1m = returns.rolling(21).sum()
     mom_3m = returns.rolling(63).sum()
     mom_6m = returns.rolling(126).sum()
 
     # Volume momentum
-    volume_ma = prices_df['volume'].rolling(21).mean()
-    volume_momentum = prices_df['volume'] / volume_ma
+    volume_ma = prices_df["volume"].rolling(21).mean()
+    volume_momentum = prices_df["volume"] / volume_ma
 
     # Relative strength
     # (would compare to market/sector in real implementation)
@@ -107,23 +107,23 @@ def calculate_momentum_signals(prices_df):
     volume_confirmation = volume_momentum.iloc[-1] > 1.0
 
     if momentum_score > 0.05 and volume_confirmation:
-        signal = 'bullish'
+        signal = "bullish"
         confidence = min(abs(momentum_score) * 5, 1.0)
     elif momentum_score < -0.05 and volume_confirmation:
-        signal = 'bearish'
+        signal = "bearish"
         confidence = min(abs(momentum_score) * 5, 1.0)
     else:
-        signal = 'neutral'
+        signal = "neutral"
         confidence = 0.5
 
     return {
-        'signal': signal,
-        'confidence': confidence,
-        'metrics': {
-            'momentum_1m': float(mom_1m.iloc[-1]),
-            'momentum_3m': float(mom_3m.iloc[-1]),
-            'momentum_6m': float(mom_6m.iloc[-1]),
-            'volume_momentum': float(volume_momentum.iloc[-1]),
+        "signal": signal,
+        "confidence": confidence,
+        "metrics": {
+            "momentum_1m": float(mom_1m.iloc[-1]),
+            "momentum_3m": float(mom_3m.iloc[-1]),
+            "momentum_6m": float(mom_6m.iloc[-1]),
+            "volume_momentum": float(volume_momentum.iloc[-1]),
         },
     }
 
@@ -131,7 +131,7 @@ def calculate_momentum_signals(prices_df):
 def calculate_volatility_signals(prices_df):
     """Volatility-based trading strategy."""
     # Calculate various volatility metrics
-    returns = prices_df['close'].pct_change()
+    returns = prices_df["close"].pct_change()
 
     # Historical volatility
     hist_vol = returns.rolling(21).std() * math.sqrt(252)
@@ -145,30 +145,30 @@ def calculate_volatility_signals(prices_df):
 
     # ATR ratio
     atr = calculate_atr(prices_df)
-    atr_ratio = atr / prices_df['close']
+    atr_ratio = atr / prices_df["close"]
 
     # Generate signal based on volatility regime
     current_vol_regime = vol_regime.iloc[-1]
     vol_z = vol_z_score.iloc[-1]
 
     if current_vol_regime < 0.8 and vol_z < -1:
-        signal = 'bullish'  # Low vol regime, potential for expansion
+        signal = "bullish"  # Low vol regime, potential for expansion
         confidence = min(abs(vol_z) / 3, 1.0)
     elif current_vol_regime > 1.2 and vol_z > 1:
-        signal = 'bearish'  # High vol regime, potential for contraction
+        signal = "bearish"  # High vol regime, potential for contraction
         confidence = min(abs(vol_z) / 3, 1.0)
     else:
-        signal = 'neutral'
+        signal = "neutral"
         confidence = 0.5
 
     return {
-        'signal': signal,
-        'confidence': confidence,
-        'metrics': {
-            'historical_volatility': float(hist_vol.iloc[-1]),
-            'volatility_regime': float(current_vol_regime),
-            'volatility_z_score': float(vol_z),
-            'atr_ratio': float(atr_ratio.iloc[-1]),
+        "signal": signal,
+        "confidence": confidence,
+        "metrics": {
+            "historical_volatility": float(hist_vol.iloc[-1]),
+            "volatility_regime": float(current_vol_regime),
+            "volatility_z_score": float(vol_z),
+            "atr_ratio": float(atr_ratio.iloc[-1]),
         },
     }
 
@@ -176,36 +176,36 @@ def calculate_volatility_signals(prices_df):
 def calculate_stat_arb_signals(prices_df):
     """Statistical arbitrage signals based on price action analysis."""
     # Calculate price distribution statistics
-    returns = prices_df['close'].pct_change()
+    returns = prices_df["close"].pct_change()
 
     # Skewness and kurtosis
     skew = returns.rolling(63).skew()
     kurt = returns.rolling(63).kurt()
 
     # Test for mean reversion using Hurst exponent
-    hurst = calculate_hurst_exponent(prices_df['close'])
+    hurst = calculate_hurst_exponent(prices_df["close"])
 
     # Correlation analysis
     # (would include correlation with related securities in real implementation)
 
     # Generate signal based on statistical properties
     if hurst < 0.4 and skew.iloc[-1] > 1:
-        signal = 'bullish'
+        signal = "bullish"
         confidence = (0.5 - hurst) * 2
     elif hurst < 0.4 and skew.iloc[-1] < -1:
-        signal = 'bearish'
+        signal = "bearish"
         confidence = (0.5 - hurst) * 2
     else:
-        signal = 'neutral'
+        signal = "neutral"
         confidence = 0.5
 
     return {
-        'signal': signal,
-        'confidence': confidence,
-        'metrics': {
-            'hurst_exponent': float(hurst),
-            'skewness': float(skew.iloc[-1]),
-            'kurtosis': float(kurt.iloc[-1]),
+        "signal": signal,
+        "confidence": confidence,
+        "metrics": {
+            "hurst_exponent": float(hurst),
+            "skewness": float(skew.iloc[-1]),
+            "kurtosis": float(kurt.iloc[-1]),
         },
     }
 
@@ -213,15 +213,15 @@ def calculate_stat_arb_signals(prices_df):
 def weighted_signal_combination(signals, weights):
     """Combines multiple trading signals using a weighted approach."""
     # Convert signals to numeric values
-    signal_values = {'bullish': 1, 'neutral': 0, 'bearish': -1}
+    signal_values = {"bullish": 1, "neutral": 0, "bearish": -1}
 
     weighted_sum = 0
     total_confidence = 0
 
     for strategy, signal in signals.items():
-        numeric_signal = signal_values[signal['signal']]
+        numeric_signal = signal_values[signal["signal"]]
         weight = weights[strategy]
-        confidence = signal['confidence']
+        confidence = signal["confidence"]
 
         weighted_sum += numeric_signal * weight * confidence
         total_confidence += weight * confidence
@@ -234,13 +234,13 @@ def weighted_signal_combination(signals, weights):
 
     # Convert back to signal
     if final_score > 0.2:
-        signal = 'bullish'
+        signal = "bullish"
     elif final_score < -0.2:
-        signal = 'bearish'
+        signal = "bearish"
     else:
-        signal = 'neutral'
+        signal = "neutral"
 
-    return {'signal': signal, 'confidence': abs(final_score)}
+    return {"signal": signal, "confidence": abs(final_score)}
 
 
 def normalize_pandas(obj):
@@ -248,7 +248,7 @@ def normalize_pandas(obj):
     if isinstance(obj, pd.Series):
         return obj.tolist()
     elif isinstance(obj, pd.DataFrame):
-        return obj.to_dict('records')
+        return obj.to_dict("records")
     elif isinstance(obj, dict):
         return {k: normalize_pandas(v) for k, v in obj.items()}
     elif isinstance(obj, list | tuple):
@@ -265,8 +265,8 @@ def calculate_macd(prices_df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
     Returns:
         tuple: MACD line and signal line as pandas Series.
     """
-    ema_12 = prices_df['close'].ewm(span=12, adjust=False).mean()
-    ema_26 = prices_df['close'].ewm(span=26, adjust=False).mean()
+    ema_12 = prices_df["close"].ewm(span=12, adjust=False).mean()
+    ema_26 = prices_df["close"].ewm(span=26, adjust=False).mean()
     macd_line = ema_12 - ema_26
     signal_line = macd_line.ewm(span=9, adjust=False).mean()
     return macd_line, signal_line
@@ -282,7 +282,7 @@ def calculate_rsi(prices_df: pd.DataFrame, period: int = 14) -> pd.Series:
     Returns:
         pd.Series: RSI values.
     """
-    delta = prices_df['close'].diff()
+    delta = prices_df["close"].diff()
     gain = (delta.where(delta > 0, 0)).fillna(0)
     loss = (-delta.where(delta < 0, 0)).fillna(0)
     avg_gain = gain.rolling(window=period).mean()
@@ -304,8 +304,8 @@ def calculate_bollinger_bands(
     Returns:
         tuple: Upper and lower Bollinger Bands as pandas Series.
     """
-    sma = prices_df['close'].rolling(window).mean()
-    std_dev = prices_df['close'].rolling(window).std()
+    sma = prices_df["close"].rolling(window).mean()
+    std_dev = prices_df["close"].rolling(window).std()
     upper_band = sma + (std_dev * 2)
     lower_band = sma - (std_dev * 2)
     return upper_band, lower_band
@@ -321,7 +321,7 @@ def calculate_ema(df: pd.DataFrame, window: int) -> pd.Series:
     Returns:
         pd.Series: EMA values
     """
-    return df['close'].ewm(span=window, adjust=False).mean()
+    return df["close"].ewm(span=window, adjust=False).mean()
 
 
 def calculate_adx(df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
@@ -335,33 +335,33 @@ def calculate_adx(df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
         DataFrame with ADX values
     """
     # Calculate True Range
-    df['high_low'] = df['high'] - df['low']
-    df['high_close'] = abs(df['high'] - df['close'].shift())
-    df['low_close'] = abs(df['low'] - df['close'].shift())
-    df['tr'] = df[['high_low', 'high_close', 'low_close']].max(axis=1)
+    df["high_low"] = df["high"] - df["low"]
+    df["high_close"] = abs(df["high"] - df["close"].shift())
+    df["low_close"] = abs(df["low"] - df["close"].shift())
+    df["tr"] = df[["high_low", "high_close", "low_close"]].max(axis=1)
 
     # Calculate Directional Movement
-    df['up_move'] = df['high'] - df['high'].shift()
-    df['down_move'] = df['low'].shift() - df['low']
+    df["up_move"] = df["high"] - df["high"].shift()
+    df["down_move"] = df["low"].shift() - df["low"]
 
-    df['plus_dm'] = np.where(
-        (df['up_move'] > df['down_move']) & (df['up_move'] > 0), df['up_move'], 0
+    df["plus_dm"] = np.where(
+        (df["up_move"] > df["down_move"]) & (df["up_move"] > 0), df["up_move"], 0
     )
-    df['minus_dm'] = np.where(
-        (df['down_move'] > df['up_move']) & (df['down_move'] > 0), df['down_move'], 0
+    df["minus_dm"] = np.where(
+        (df["down_move"] > df["up_move"]) & (df["down_move"] > 0), df["down_move"], 0
     )
 
     # Calculate ADX
-    df['+di'] = 100 * (
-        df['plus_dm'].ewm(span=period).mean() / df['tr'].ewm(span=period).mean()
+    df["+di"] = 100 * (
+        df["plus_dm"].ewm(span=period).mean() / df["tr"].ewm(span=period).mean()
     )
-    df['-di'] = 100 * (
-        df['minus_dm'].ewm(span=period).mean() / df['tr'].ewm(span=period).mean()
+    df["-di"] = 100 * (
+        df["minus_dm"].ewm(span=period).mean() / df["tr"].ewm(span=period).mean()
     )
-    df['dx'] = 100 * abs(df['+di'] - df['-di']) / (df['+di'] + df['-di'])
-    df['adx'] = df['dx'].ewm(span=period).mean()
+    df["dx"] = 100 * abs(df["+di"] - df["-di"]) / (df["+di"] + df["-di"])
+    df["adx"] = df["dx"].ewm(span=period).mean()
 
-    return df[['adx', '+di', '-di']]
+    return df[["adx", "+di", "-di"]]
 
 
 def calculate_ichimoku(df: pd.DataFrame) -> dict[str, pd.Series]:
@@ -374,32 +374,32 @@ def calculate_ichimoku(df: pd.DataFrame) -> dict[str, pd.Series]:
         Dictionary containing Ichimoku components
     """
     # Tenkan-sen (Conversion Line): (9-period high + 9-period low)/2
-    period9_high = df['high'].rolling(window=9).max()
-    period9_low = df['low'].rolling(window=9).min()
+    period9_high = df["high"].rolling(window=9).max()
+    period9_low = df["low"].rolling(window=9).min()
     tenkan_sen = (period9_high + period9_low) / 2
 
     # Kijun-sen (Base Line): (26-period high + 26-period low)/2
-    period26_high = df['high'].rolling(window=26).max()
-    period26_low = df['low'].rolling(window=26).min()
+    period26_high = df["high"].rolling(window=26).max()
+    period26_low = df["low"].rolling(window=26).min()
     kijun_sen = (period26_high + period26_low) / 2
 
     # Senkou Span A (Leading Span A): (Conversion Line + Base Line)/2
     senkou_span_a = ((tenkan_sen + kijun_sen) / 2).shift(26)
 
     # Senkou Span B (Leading Span B): (52-period high + 52-period low)/2
-    period52_high = df['high'].rolling(window=52).max()
-    period52_low = df['low'].rolling(window=52).min()
+    period52_high = df["high"].rolling(window=52).max()
+    period52_low = df["low"].rolling(window=52).min()
     senkou_span_b = ((period52_high + period52_low) / 2).shift(26)
 
     # Chikou Span (Lagging Span): Close shifted back 26 periods
-    chikou_span = df['close'].shift(-26)
+    chikou_span = df["close"].shift(-26)
 
     return {
-        'tenkan_sen': tenkan_sen,
-        'kijun_sen': kijun_sen,
-        'senkou_span_a': senkou_span_a,
-        'senkou_span_b': senkou_span_b,
-        'chikou_span': chikou_span,
+        "tenkan_sen": tenkan_sen,
+        "kijun_sen": kijun_sen,
+        "senkou_span_a": senkou_span_a,
+        "senkou_span_b": senkou_span_b,
+        "chikou_span": chikou_span,
     }
 
 
@@ -413,9 +413,9 @@ def calculate_atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
     Returns:
         pd.Series: ATR values
     """
-    high_low = df['high'] - df['low']
-    high_close = abs(df['high'] - df['close'].shift())
-    low_close = abs(df['low'] - df['close'].shift())
+    high_low = df["high"] - df["low"]
+    high_close = abs(df["high"] - df["close"].shift())
+    low_close = abs(df["low"] - df["close"].shift())
 
     ranges = pd.concat([high_low, high_close, low_close], axis=1)
     true_range = ranges.max(axis=1)
@@ -464,14 +464,14 @@ def calculate_obv(prices_df: pd.DataFrame) -> pd.Series:
     """
     obv = [0]
     for i in range(1, len(prices_df)):
-        if prices_df['close'].iloc[i] > prices_df['close'].iloc[i - 1]:
-            obv.append(obv[-1] + prices_df['volume'].iloc[i])
-        elif prices_df['close'].iloc[i] < prices_df['close'].iloc[i - 1]:
-            obv.append(obv[-1] - prices_df['volume'].iloc[i])
+        if prices_df["close"].iloc[i] > prices_df["close"].iloc[i - 1]:
+            obv.append(obv[-1] + prices_df["volume"].iloc[i])
+        elif prices_df["close"].iloc[i] < prices_df["close"].iloc[i - 1]:
+            obv.append(obv[-1] - prices_df["volume"].iloc[i])
         else:
             obv.append(obv[-1])
-    prices_df['OBV'] = obv
-    return prices_df['OBV']
+    prices_df["OBV"] = obv
+    return prices_df["OBV"]
 
 
 def technical_analyst_agent(
@@ -505,71 +505,71 @@ def technical_analyst_agent(
         macd_line.iloc[-2] < signal_line.iloc[-2]
         and macd_line.iloc[-1] > signal_line.iloc[-1]
     ):
-        signals.append('bullish')
+        signals.append("bullish")
     elif (
         macd_line.iloc[-2] > signal_line.iloc[-2]
         and macd_line.iloc[-1] < signal_line.iloc[-1]
     ):
-        signals.append('bearish')
+        signals.append("bearish")
     else:
-        signals.append('neutral')
+        signals.append("neutral")
 
     # RSI signal
     if rsi.iloc[-1] < 30:
-        signals.append('bullish')
+        signals.append("bullish")
     elif rsi.iloc[-1] > 70:
-        signals.append('bearish')
+        signals.append("bearish")
     else:
-        signals.append('neutral')
+        signals.append("neutral")
 
     # Bollinger Bands signal
-    current_price = prices_df['close'].iloc[-1]
+    current_price = prices_df["close"].iloc[-1]
     if current_price < lower_band.iloc[-1]:
-        signals.append('bullish')
+        signals.append("bullish")
     elif current_price > upper_band.iloc[-1]:
-        signals.append('bearish')
+        signals.append("bearish")
     else:
-        signals.append('neutral')
+        signals.append("neutral")
 
     # OBV signal
     obv_slope = obv.diff().iloc[-5:].mean()
     if obv_slope > 0:
-        signals.append('bullish')
+        signals.append("bullish")
     elif obv_slope < 0:
-        signals.append('bearish')
+        signals.append("bearish")
     else:
-        signals.append('neutral')
+        signals.append("neutral")
 
     # Add reasoning collection
     reasoning = {
-        'MACD': {
-            'signal': signals[0],
-            'details': f"MACD Line crossed {'above' if signals[0] == 'bullish' else 'below' if signals[0] == 'bearish' else 'neither above nor below'} Signal Line",
+        "MACD": {
+            "signal": signals[0],
+            "details": f"MACD Line crossed {'above' if signals[0] == 'bullish' else 'below' if signals[0] == 'bearish' else 'neither above nor below'} Signal Line",
         },
-        'RSI': {
-            'signal': signals[1],
-            'details': f"RSI is {rsi.iloc[-1]:.2f} ({'oversold' if signals[1] == 'bullish' else 'overbought' if signals[1] == 'bearish' else 'neutral'})",
+        "RSI": {
+            "signal": signals[1],
+            "details": f"RSI is {rsi.iloc[-1]:.2f} ({'oversold' if signals[1] == 'bullish' else 'overbought' if signals[1] == 'bearish' else 'neutral'})",
         },
-        'Bollinger': {
-            'signal': signals[2],
-            'details': f"Price is {'below lower band' if signals[2] == 'bullish' else 'above upper band' if signals[2] == 'bearish' else 'within bands'}",
+        "Bollinger": {
+            "signal": signals[2],
+            "details": f"Price is {'below lower band' if signals[2] == 'bullish' else 'above upper band' if signals[2] == 'bearish' else 'within bands'}",
         },
-        'OBV': {
-            'signal': signals[3],
-            'details': f'OBV slope is {obv_slope:.2f} ({signals[3]})',
+        "OBV": {
+            "signal": signals[3],
+            "details": f"OBV slope is {obv_slope:.2f} ({signals[3]})",
         },
     }
 
     # Determine overall signal
-    bullish_signals = signals.count('bullish')
-    bearish_signals = signals.count('bearish')
+    bullish_signals = signals.count("bullish")
+    bearish_signals = signals.count("bearish")
 
     if bullish_signals > bearish_signals:
-        overall_signal = 'bullish'
+        overall_signal = "bullish"
     elif bearish_signals > bullish_signals:
-        overall_signal = 'bearish'
+        overall_signal = "bearish"
     else:
-        overall_signal = 'neutral'
+        overall_signal = "neutral"
 
     # Calculate confidence level based on the proportion of indicators agreeing
     total_signals = len(signals)
@@ -577,13 +577,13 @@ def technical_analyst_agent(
 
     # Generate the message content
     message_content = {
-        'signal': overall_signal,
-        'confidence': f'{round(confidence * 100)}%',
-        'reasoning': {
-            'MACD': reasoning['MACD'],
-            'RSI': reasoning['RSI'],
-            'Bollinger': reasoning['Bollinger'],
-            'OBV': reasoning['OBV'],
+        "signal": overall_signal,
+        "confidence": f"{round(confidence * 100)}%",
+        "reasoning": {
+            "MACD": reasoning["MACD"],
+            "RSI": reasoning["RSI"],
+            "Bollinger": reasoning["Bollinger"],
+            "OBV": reasoning["OBV"],
         },
     }
 
@@ -604,60 +604,60 @@ def technical_analyst_agent(
 
     # Combine all signals using a weighted ensemble approach
     strategy_weights = {
-        'trend': 0.25,
-        'mean_reversion': 0.20,
-        'momentum': 0.25,
-        'volatility': 0.15,
-        'stat_arb': 0.15,
+        "trend": 0.25,
+        "mean_reversion": 0.20,
+        "momentum": 0.25,
+        "volatility": 0.15,
+        "stat_arb": 0.15,
     }
 
     combined_signal = weighted_signal_combination(
         {
-            'trend': trend_signals,
-            'mean_reversion': mean_reversion_signals,
-            'momentum': momentum_signals,
-            'volatility': volatility_signals,
-            'stat_arb': stat_arb_signals,
+            "trend": trend_signals,
+            "mean_reversion": mean_reversion_signals,
+            "momentum": momentum_signals,
+            "volatility": volatility_signals,
+            "stat_arb": stat_arb_signals,
         },
         strategy_weights,
     )
 
     # Generate detailed analysis report
     analysis_report = {
-        'signal': combined_signal['signal'],
-        'confidence': f"{round(combined_signal['confidence'] * 100)}%",
-        'strategy_signals': {
-            'trend_following': {
-                'signal': trend_signals['signal'],
-                'confidence': f"{round(trend_signals['confidence'] * 100)}%",
-                'metrics': normalize_pandas(trend_signals['metrics']),
+        "signal": combined_signal["signal"],
+        "confidence": f"{round(combined_signal['confidence'] * 100)}%",
+        "strategy_signals": {
+            "trend_following": {
+                "signal": trend_signals["signal"],
+                "confidence": f"{round(trend_signals['confidence'] * 100)}%",
+                "metrics": normalize_pandas(trend_signals["metrics"]),
             },
-            'mean_reversion': {
-                'signal': mean_reversion_signals['signal'],
-                'confidence': f"{round(mean_reversion_signals['confidence'] * 100)}%",
-                'metrics': normalize_pandas(mean_reversion_signals['metrics']),
+            "mean_reversion": {
+                "signal": mean_reversion_signals["signal"],
+                "confidence": f"{round(mean_reversion_signals['confidence'] * 100)}%",
+                "metrics": normalize_pandas(mean_reversion_signals["metrics"]),
             },
-            'momentum': {
-                'signal': momentum_signals['signal'],
-                'confidence': f"{round(momentum_signals['confidence'] * 100)}%",
-                'metrics': normalize_pandas(momentum_signals['metrics']),
+            "momentum": {
+                "signal": momentum_signals["signal"],
+                "confidence": f"{round(momentum_signals['confidence'] * 100)}%",
+                "metrics": normalize_pandas(momentum_signals["metrics"]),
             },
-            'volatility': {
-                'signal': volatility_signals['signal'],
-                'confidence': f"{round(volatility_signals['confidence'] * 100)}%",
-                'metrics': normalize_pandas(volatility_signals['metrics']),
+            "volatility": {
+                "signal": volatility_signals["signal"],
+                "confidence": f"{round(volatility_signals['confidence'] * 100)}%",
+                "metrics": normalize_pandas(volatility_signals["metrics"]),
             },
-            'statistical_arbitrage': {
-                'signal': stat_arb_signals['signal'],
-                'confidence': f"{round(stat_arb_signals['confidence'] * 100)}%",
-                'metrics': normalize_pandas(stat_arb_signals['metrics']),
+            "statistical_arbitrage": {
+                "signal": stat_arb_signals["signal"],
+                "confidence": f"{round(stat_arb_signals['confidence'] * 100)}%",
+                "metrics": normalize_pandas(stat_arb_signals["metrics"]),
             },
         },
     }
 
     # print(analysis_report)
     return {
-        'analysis_report': analysis_report,
+        "analysis_report": analysis_report,
     }
     # Create the technical analyst message
     # message = HumanMessage(
@@ -675,14 +675,17 @@ def technical_analyst_agent(
 
 
 def fake_technical_analyst():
-    """Generate a fake technical analyst response for testing purposes."""
-    prices = pd.read_csv('data/BTC_USDT_1d.csv')
+    """Generate a fake technical analyst response for testing purposes.
+
+    return: JSON string containing the fake response.
+    """
+    prices = pd.read_csv("data/BTC_USDT_1d.csv")
     prices = prices[-60:]
     agent_response = technical_analyst_agent(prices)
     return json.dumps(agent_response)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from rich.pretty import pprint
 
     pprint(fake_technical_analyst())

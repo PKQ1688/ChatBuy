@@ -13,7 +13,7 @@ logfire.configure()
 class TradingDecision(BaseModel):
     """A model representing a trading decision."""
 
-    Strategy: str = Literal['LONG', 'SHORT', 'HOLD']
+    Strategy: str = Literal["LONG", "SHORT", "HOLD"]
     Reason: str
 
 
@@ -25,5 +25,5 @@ buy_agent = Agent(
 )
 
 
-res = buy_agent.run_sync('Make a trading decision based on the provided data.')
+res = buy_agent.run_sync("Make a trading decision based on the provided data.")
 print(res.data)
