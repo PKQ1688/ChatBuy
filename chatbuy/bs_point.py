@@ -1,4 +1,4 @@
-from typing import Literal
+from enum import Enum
 
 import logfire
 from pydantic import BaseModel
@@ -10,10 +10,18 @@ from chatbuy.tool.technicals import fake_technical_analyst
 logfire.configure()
 
 
+class StrategyEnum(str, Enum):
+    """Enumeration of possible trading strategies."""
+
+    LONG = "LONG"
+    SHORT = "SHORT"
+    HOLD = "HOLD"
+
+
 class TradingDecision(BaseModel):
     """A model representing a trading decision."""
 
-    Strategy: str = Literal["LONG", "SHORT", "HOLD"]
+    Strategy: StrategyEnum
     Reason: str
 
 
@@ -26,4 +34,5 @@ buy_agent = Agent(
 
 
 res = buy_agent.run_sync("Make a trading decision based on the provided data.")
-print(res.data)
+print(res.data.Strategy.value)
+print(res.data.Reason)

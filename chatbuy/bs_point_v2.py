@@ -21,6 +21,8 @@ class TradingDecision(BaseModel):
     Reason: str
 
 
-agent = ToolCallingAgent(tools=[get_technical_analysis], model=model)
+agent = ToolCallingAgent(
+    tools=[get_technical_analysis], model=model, grammar=TradingDecision
+)
 
 print(agent.run("Make a trading decision based on the provided data."))
