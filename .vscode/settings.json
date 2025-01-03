@@ -12,6 +12,7 @@
         "isort",
         "Kijun",
         "libmagic",
+        "litellm",
         "logfire",
         "MACD",
         "mccabe",

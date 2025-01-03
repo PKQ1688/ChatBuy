@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "ccxt>=4.4.36",
+    "litellm>=1.56.5",
     "logfire>=2.11.0",
     "openai>=1.57.0",
     "pandas>=2.2.3",
