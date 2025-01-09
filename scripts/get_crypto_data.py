@@ -8,17 +8,19 @@ import pandas as pd
 exchange = ccxt.binance({"rateLimit": 1200, "enableRateLimit": True})
 
 
-def fetch_historical_data(symbol, timeframe, start_date, limit=1000):
-    """Fetch historical K-line data from Binance in batches.
+def fetch_historical_data(symbol, timeframe, start_date, limit=1000, max_retries=3):
+    """Fetch historical K-line data from Binance in batches with retry mechanism.
 
     :param symbol: Trading pair (e.g., 'BTC/USDT')
     :param timeframe: Time period (e.g., '1m', '1h', '1d')
     :param start_date: Start time (ISO format, e.g., '2017-07-01T00:00:00Z')
     :param limit: Maximum number of entries per request (default 1000)
+    :param max_retries: Maximum number of retries for fetching data (default 5)
     :return: DataFrame containing all historical data
     """
     all_data = []
     since = exchange.parse8601(start_date)
+    retries = 0
 
     while True:
         try:
@@ -29,9 +31,16 @@ def fetch_historical_data(symbol, timeframe, start_date, limit=1000):
             since = ohlcv[-1][0] + 1  # 下一批次从最新时间开始
             print(f"Fetched {len(ohlcv)} rows. Current timestamp: {ohlcv[-1][0]}")
             time.sleep(exchange.rateLimit / 1000)  # 避免触发速率限制
+            retries = 0  # Reset retries after a successful fetch
         except Exception as e:
             print(f"Error fetching data: {e}")
-            break
+            retries += 1
+            if retries > max_retries:
+                print("Max retries reached. Exiting.")
+                break
+            sleep_time = min(2 ** retries, 60)  # Exponential backoff with a cap
+            print(f"Retrying in {sleep_time} seconds...")
+            time.sleep(sleep_time)
 
     # 转换为 DataFrame
     df = pd.DataFrame(
@@ -66,4 +75,4 @@ def main(symbol="BTC", timeframe="1d", start_date="2017-07-01T00:00:00Z"):
 
 
 if __name__ == "__main__":
-    main()
+    main(symbol="SUI")
