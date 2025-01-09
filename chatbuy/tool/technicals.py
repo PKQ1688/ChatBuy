@@ -680,7 +680,8 @@ def fake_technical_analyst():
     return: JSON string containing the fake response.
     """
     prices = pd.read_csv("data/BTC_USDT_1d.csv")
-    prices = prices[-60:]
+    # prices = pd.read_csv("data/SUI_USDT_1d.csv")
+    prices = prices[-120:]
     agent_response = technical_analyst_agent(prices)
     return json.dumps(agent_response)
 
