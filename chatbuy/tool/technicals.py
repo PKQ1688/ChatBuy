@@ -586,6 +586,7 @@ def technical_analyst_agent(
             "OBV": reasoning["OBV"],
         },
     }
+    print(message_content)
 
     # 1. Trend Following Strategy
     trend_signals = calculate_trend_signals(prices_df)
