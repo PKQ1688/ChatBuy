@@ -23,6 +23,7 @@ class TradingDecision(BaseModel):
 
     Strategy: StrategyEnum
     Reason: str
+    Confidence: float
 
 
 buy_agent = Agent(
@@ -36,3 +37,4 @@ buy_agent = Agent(
 res = buy_agent.run_sync("Make a trading decision based on the provided data.")
 print(res.data.Strategy.value)
 print(res.data.Reason)
+print(res.data.Confidence)
