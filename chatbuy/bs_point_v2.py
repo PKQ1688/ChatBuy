@@ -1,6 +1,6 @@
-from typing import Literal
+# from typing import Literal
 
-from pydantic import BaseModel
+# from pydantic import BaseModel
 from smolagents import tool
 
 # from smolagents.agents import ToolCallingAgent
@@ -16,17 +16,17 @@ def get_technical_analysis() -> str:
     return fake_technical_analyst()
 
 
-class TradingDecision(BaseModel):
-    """A model representing a trading decision."""
+# class TradingDecision(BaseModel):
+#     """A model representing a trading decision."""
 
-    Strategy: str = Literal["LONG", "SHORT", "HOLD"]
-    Reason: str
+#     Strategy: str = Literal["LONG", "SHORT", "HOLD"]
+#     Reason: str
 
 
 # agent = CodeAgent(tools=[get_technical_analysis], model=model, grammar=TradingDecision)
 agent = CodeAgent(
     tools=[get_technical_analysis],
     model=model,
-    # grammar={"Strategy": ["LONG", "SHORT", "HOLD"], "Reason": str},
+    # grammar=TradingDecision,
 )
 agent.run("Make a trading decision based on the provided data.")

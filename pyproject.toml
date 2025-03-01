@@ -12,10 +12,11 @@ dependencies = [
     "pandas>=2.2.3",
     "pillow>=11.0.0",
     "pydantic>=2.10.6",
-    "pydantic-ai>=0.0.24",
+    "pydantic-ai>=0.0.30",
     "rich>=13.9.4",
     "ruff>=0.8.2",
     "smolagents>=1.9.2",
+    "talipp>=2.4.1",
 ]
 
 [tool.ruff.format]
