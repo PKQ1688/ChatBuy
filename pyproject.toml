@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "ccxt>=4.4.36",
+    "helium>=5.1.1",
     "httpx[socks]>=0.28.1",
     "litellm>=1.61.11",
     "logfire>=3.6.2",
@@ -15,6 +16,7 @@ dependencies = [
     "pydantic-ai>=0.0.30",
     "rich>=13.9.4",
     "ruff>=0.8.2",
+    "selenium>=4.29.0",
     "smolagents>=1.9.2",
     "talipp>=2.4.1",
 ]
@@ -30,7 +32,6 @@ extend-select = [
   "C90",
   "UP",
   "I",
-  "D"
 ]
 flake8-quotes = {inline-quotes = "double", multiline-quotes = "double"}
 isort = {combine-as-imports = true}
