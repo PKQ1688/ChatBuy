@@ -151,7 +151,7 @@ if Text('Accept cookies?').exists():
 """
 
 search_request = """
-帮我测试一下 https://www.okx.com/zh-hant 这个页面有没有什么bug
+帮我看看这个人 https://x.com/elonmusk 的推特，看看他最近在干啥
 """
 
 agent_output = agent.run(search_request + helium_instructions)
