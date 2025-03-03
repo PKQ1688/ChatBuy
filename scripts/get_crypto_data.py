@@ -75,4 +75,4 @@ def main(symbol="BTC", timeframe="1d", start_date="2017-07-01T00:00:00Z"):
 
 
 if __name__ == "__main__":
-    main(symbol="SUI")
+    main(symbol="BTC")
