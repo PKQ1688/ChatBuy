@@ -46,8 +46,13 @@ model_mini = OpenAIModel(
 model_qwq32 = GroqModel("qwen-qwq-32b", api_key=os.getenv("GROQ_API_KEY"))
 
 if __name__ == "__main__":
+    import time
+
     from pydantic_ai import Agent
 
     agent = Agent(model=model_qwq32)
+
+    st = time.time()
     res = agent.run_sync("who are you?")
     print(res.data)
+    print(f"Time taken: {time.time() - st:.2f} seconds")
