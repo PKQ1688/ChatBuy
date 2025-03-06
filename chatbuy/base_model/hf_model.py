@@ -1,17 +1,17 @@
 import os
 
 from dotenv import load_dotenv
+from huggingface_hub import InferenceClient
 
-# from huggingface_hub import InferenceClient
-from openai import OpenAI
+# from openai import OpenAI
 
 load_dotenv(override=True)
 
-# client = InferenceClient(provider="hyperbolic", api_key=os.getenv("HF_TOKEN"))
-client = OpenAI(
-    base_url="https://router.huggingface.co/hyperbolic/",
-    api_key=os.getenv("HF_TOKEN"),
-)
+client = InferenceClient(provider="hyperbolic", api_key=os.getenv("HF_TOKEN"))
+# client = OpenAI(
+#     base_url="https://router.huggingface.co/hyperbolic/",
+#     api_key=os.getenv("HF_TOKEN"),
+# )
 
 messages = [{"role": "user", "content": "What is the capital of France?"}]
 
