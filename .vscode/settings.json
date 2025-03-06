@@ -43,6 +43,7 @@
     ],
     "cSpell.ignorePaths": [
         ".venv/**",
-        ".env"
+        ".env",
+        ".env.example"
     ],
 }
