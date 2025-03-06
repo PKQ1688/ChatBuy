@@ -44,5 +44,6 @@
     "cSpell.ignorePaths": [
         ".venv/**",
         ".env"
-    ]
+    ],
+    "terminal.integrated.cwd": "${workspaceFolder}/chatbuy",
 }

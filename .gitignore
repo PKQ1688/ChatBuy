@@ -165,3 +165,5 @@ poetry.lock
 data/
 .ruff_cache/
 uv.lock
+
+.logfire/

@@ -1,13 +1,10 @@
 import time
-import logging
+
 import ccxt
 import pandas as pd
+from utils import logger
 
 exchange = ccxt.binance({"rateLimit": 1200, "enableRateLimit": True})
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 def fetch_historical_data(
@@ -26,7 +23,7 @@ def fetch_historical_data(
     :param limit: Maximum number of entries per request (default 1000)
     :param max_retries: Maximum number of retries for fetching data (default 5)
     :param verbose: If True, enable verbose logging (default True)
-    
+
     :return: DataFrame containing all historical data
     """
     all_data = []

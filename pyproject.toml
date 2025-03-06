@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "ccxt>=4.4.65",
     "huggingface-hub>=0.29.2",
+    "logfire>=3.7.1",
     "openai>=1.65.4",
     "pydantic-ai>=0.0.35",
     "python-dotenv>=1.0.1",
