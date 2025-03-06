@@ -17,6 +17,7 @@
         "isort",
         "JSONAGENT",
         "Kijun",
+        "levelname",
         "libmagic",
         "litellm",
         "logfire",
