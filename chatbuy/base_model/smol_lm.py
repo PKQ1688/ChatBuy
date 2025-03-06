@@ -27,13 +27,13 @@ model_1120 = AzureOpenAIServerModel(
     api_version=os.environ.get("AZURE_OPENAI_API_VERSION"),
 )
 
-# model_qwq32 = HfApiModel(
-#     provider="hyperbolic", model_id="Qwen/QwQ-32B", token=os.environ.get("HF_TOKEN")
-# )
-
-model_qwq32 = LiteLLMModel(
-    model_id="groq/qwen-qwq-32b", api_key=os.getenv("GROQ_API_KEY")
+model_qwq32 = HfApiModel(
+    provider="hyperbolic", model_id="Qwen/QwQ-32B", token=os.environ.get("HF_TOKEN")
 )
+
+# model_qwq32 = LiteLLMModel(
+#     model_id="groq/qwen-qwq-32b", api_key=os.getenv("GROQ_API_KEY")
+# )
 
 if __name__ == "__main__":
     import time
