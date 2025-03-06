@@ -13,7 +13,7 @@ client = InferenceClient(provider="hyperbolic", api_key=os.getenv("HF_TOKEN"))
 #     api_key=os.getenv("HF_TOKEN"),
 # )
 
-messages = [{"role": "user", "content": "What is the capital of France?"}]
+messages = [{"role": "user", "content": "帮我分析一下深圳的就业环境？"}]
 
 completion = client.chat.completions.create(
     model="Qwen/QwQ-32B",
