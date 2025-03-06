@@ -1,11 +1,10 @@
 from enum import Enum
 
 import logfire
+from base_model.pydantic_lm import model_1120 as llm_model
 from pydantic import BaseModel
 from pydantic_ai import Agent, Tool
-
-from chatbuy.base_model.pydantic_lm import model_1120 as llm_model
-from chatbuy.tool.technicals import fake_technical_analyst
+from tool.technicals import fake_technical_analyst
 
 logfire.configure()
 
