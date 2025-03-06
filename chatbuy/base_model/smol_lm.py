@@ -1,34 +1,17 @@
 import os
 
 from dotenv import load_dotenv
-from smolagents import AzureOpenAIServerModel, HfApiModel, LiteLLMModel
+from smolagents import HfApiModel, LiteLLMModel
 
 load_dotenv(override=True)
 
-# openai_kwargs = {
-#     'AZURE_API_BASE': os.environ['AZURE_OPENAI_ENDPOINT'],
-#     'api_version': os.environ['AZURE_OPENAI_API_VERSION'],
-#     'api_key': os.environ['AZURE_OPENAI_API_KEY'],
-# }
-
-os.environ["AZURE_API_KEY"] = os.environ["AZURE_OPENAI_API_KEY"]
-os.environ["AZURE_API_BASE"] = os.environ["AZURE_OPENAI_ENDPOINT"]
-os.environ["AZURE_API_VERSION"] = os.environ["AZURE_OPENAI_API_VERSION"]
 
 model_mini = LiteLLMModel("azure/gpt-4o-mini")
-
 model_0806 = LiteLLMModel(model_id="azure/gpt-4o-0806")
-# model_1120 = LiteLLMModel(model_id="azure/gpt-4o-1120")
-
-model_1120 = AzureOpenAIServerModel(
-    model_id="gpt-4o-1120",
-    azure_endpoint=os.environ.get("AZURE_OPENAI_ENDPOINT"),
-    api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
-    api_version=os.environ.get("AZURE_OPENAI_API_VERSION"),
-)
+model_1120 = LiteLLMModel(model_id="azure/gpt-4o-1120")
 
 model_qwq32 = HfApiModel(
-    provider="hyperbolic", model_id="Qwen/QwQ-32B", token=os.environ.get("HF_TOKEN")
+    provider="hyperbolic", model_id="Qwen/QwQ-32B", token=os.getenv("HF_TOKEN")
 )
 
 # model_qwq32 = LiteLLMModel(
@@ -47,7 +30,7 @@ if __name__ == "__main__":
     ]
 
     st = time.time()
-    response = model_qwq32(messages)
+    response = model_1120(messages)
     print(response)
 
     print(f"Time taken: {time.time() - st:.2f} seconds")
