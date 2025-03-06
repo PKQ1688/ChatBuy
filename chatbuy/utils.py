@@ -31,6 +31,9 @@ logging.basicConfig(
 logger = logging.getLogger(MODULE_NAME)
 logger.setLevel(logging.DEBUG)
 
+# Prevent propagation to root logger to avoid duplicate logs
+logger.propagate = False
+
 # Remove any existing handlers to avoid duplicates
 for handler in logger.handlers[:]:
     logger.removeHandler(handler)
@@ -46,7 +49,7 @@ logger.addHandler(
 )
 
 # Configure file handler for logging
-file_handler = logging.FileHandler(f"{LOG_DIR}/ai.log", encoding="utf-8")
+file_handler = logging.FileHandler(f"{LOG_DIR}/chatbuy.log", encoding="utf-8")
 file_handler.setLevel(logging.INFO)
 
 file_handler.setFormatter(
