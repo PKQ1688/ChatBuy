@@ -59,3 +59,20 @@ def fetch_historical_data(
     )
     df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
     return df
+
+
+def fetch_current_price(symbol: str) -> float:
+    """Fetch the current price of a trading pair from Binance.
+
+    :param symbol: Trading pair (e.g., 'BTC/USDT')
+    
+    :return: Current price as a float, or None if an error occurs
+    """
+    try:
+        ticker = exchange.fetch_ticker(symbol)
+        current_price = ticker["last"]
+        logger.info(f"Current price for {symbol}: {current_price}")
+        return current_price
+    except Exception as e:
+        logger.error(f"Error fetching current price for {symbol}: {e}")
+        return None
