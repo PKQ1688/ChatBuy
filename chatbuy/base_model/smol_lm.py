@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from smolagents import AzureOpenAIServerModel, LiteLLMModel
+from smolagents import AzureOpenAIServerModel, HfApiModel, LiteLLMModel
 
 load_dotenv(override=True)
 
@@ -27,8 +27,17 @@ model_1120 = AzureOpenAIServerModel(
     api_version=os.environ.get("AZURE_OPENAI_API_VERSION"),
 )
 
+# model_qwq32 = HfApiModel(
+#     provider="hyperbolic", model_id="Qwen/QwQ-32B", token=os.environ.get("HF_TOKEN")
+# )
+
+model_qwq32 = LiteLLMModel(
+    model_id="groq/qwen-qwq-32b", api_key=os.getenv("GROQ_API_KEY")
+)
 
 if __name__ == "__main__":
+    import time
+
     messages = [
         {"role": "system", "content": "Extract the event information."},
         {
@@ -37,4 +46,8 @@ if __name__ == "__main__":
         },
     ]
 
-    print(model_1120(messages))
+    st = time.time()
+    response = model_qwq32(messages)
+    print(response)
+
+    print(f"Time taken: {time.time() - st:.2f} seconds")

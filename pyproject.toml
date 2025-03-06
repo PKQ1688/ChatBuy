@@ -5,9 +5,15 @@ description = "use gpt to chat with trading bot"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "ccxt>=4.4.65",
     "huggingface-hub>=0.29.2",
+    "openai>=1.65.4",
+    "pydantic-ai>=0.0.35",
     "python-dotenv>=1.0.1",
+    "rich>=13.9.4",
     "ruff>=0.9.9",
+    "smolagents[litellm]>=1.10.0",
+    "talipp>=2.4.1",
 ]
 
 [tool.ruff.format]
