@@ -5,21 +5,9 @@ description = "use gpt to chat with trading bot"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "ccxt>=4.4.36",
-    "helium>=5.1.1",
-    "httpx[socks]>=0.28.1",
-    "huggingface-hub>=0.29.1",
-    "litellm>=1.62.1",
-    "logfire>=3.6.2",
-    "pandas>=2.2.3",
-    "pillow>=11.0.0",
-    "pydantic>=2.10.6",
+    "huggingface-hub>=0.29.2",
     "python-dotenv>=1.0.1",
-    "rich>=13.9.4",
-    "ruff>=0.8.2",
-    "selenium>=4.29.0",
-    "smolagents>=1.9.2",
-    "talipp>=2.4.1",
+    "ruff>=0.9.9",
 ]
 
 [tool.ruff.format]

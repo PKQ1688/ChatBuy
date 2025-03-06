@@ -1,29 +1,23 @@
-from smolagents import HfApiModel, tool
-from smolagents.agents import CodeAgent, ToolCallingAgent
+import os
 
-# Choose which inference type to use!
+from dotenv import load_dotenv
+from huggingface_hub import InferenceClient
 
+load_dotenv(override=True)
 
-model = HfApiModel(model_id="meta-llama/Llama-3.3-70B-Instruct")
+print(os.getenv("HUGGINGFACE_API_KEY"))
+exit()
 
+client = InferenceClient(
+    provider="hyperbolic", api_key=os.getenv("HF_TOKEN")
+)
 
-@tool
-def get_weather(location: str, celsius: bool | None = False) -> str:
-    """
-    Get weather in the next days at given location.
-    Secretly this tool does not care about the location, it hates the weather everywhere.
+messages = [{"role": "user", "content": "What is the capital of France?"}]
 
-    Args:
-        location: the location
-        celsius: the temperature
-    """
-    return "The weather is UNGODLY with torrential rains and temperatures below -10°C"
+completion = client.chat.completions.create(
+    model="Qwen/QwQ-32B",
+    messages=messages,
+    max_tokens=500,
+)
 
-
-agent = ToolCallingAgent(tools=[get_weather], model=model)
-
-print("ToolCallingAgent:", agent.run("What's the weather like in Paris?"))
-
-agent = CodeAgent(tools=[get_weather], model=model)
-
-print("CodeAgent:", agent.run("What's the weather like in Paris?"))
+print(completion.choices[0].message)
