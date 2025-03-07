@@ -10,12 +10,24 @@ model_mini = LiteLLMModel("azure/gpt-4o-mini")
 model_0806 = LiteLLMModel(model_id="azure/gpt-4o-0806")
 model_1120 = LiteLLMModel(model_id="azure/gpt-4o-1120")
 
-model_qwq32 = HfApiModel(
-    provider="hyperbolic", model_id="Qwen/QwQ-32B", token=os.getenv("HF_TOKEN")
-)
+# model_qwq32 = HfApiModel(
+#     provider="hyperbolic", model_id="Qwen/QwQ-32B", token=os.getenv("HF_TOKEN")
+# )
 
 model_qwen32 = LiteLLMModel(
     model_id="groq/qwen-2.5-32b",
+    api_base="https://api.groq.com/openai/v1",
+    api_key=os.getenv("GROQ_API_KEY"),
+)
+
+model_qwq32 = LiteLLMModel(
+    model_id="groq/qwen-qwq-32b",
+    api_base="https://api.groq.com/openai/v1",
+    api_key=os.getenv("GROQ_API_KEY"),
+)
+
+model_qwen_code = LiteLLMModel(
+    model_id="groq/qwen-2.5-coder-32b",
     api_base="https://api.groq.com/openai/v1",
     api_key=os.getenv("GROQ_API_KEY"),
 )
