@@ -25,3 +25,4 @@ uv.lock
 
 .logfire/
 logs/
+.gradio/

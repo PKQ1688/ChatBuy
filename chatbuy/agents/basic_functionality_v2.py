@@ -1,5 +1,5 @@
 from base_model.smol_lm import model_qwen_code as model
-from smolagents import tool
+from smolagents import GradioUI, tool
 
 # from smolagents.agents import ToolCallingAgent
 from smolagents.agents import CodeAgent
@@ -8,6 +8,10 @@ from tool.data_indicators_fetcher import fetch_current_price, fetch_historical_d
 agent = CodeAgent(
     tools=[tool(fetch_current_price), tool(fetch_historical_data)],
     model=model,
-    # grammar=TradingDecision,
+    verbosity_level=1,
+    name="query_agent",
+    description="This is an agent used to query cryptocurrency prices.",
 )
-response = agent.run("请查询今天ETH的价格")
+# response = agent.run("请查询今天ETH的价格")
+
+GradioUI(agent, file_upload_folder="data").launch()
