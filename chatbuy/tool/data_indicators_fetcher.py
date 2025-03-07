@@ -17,12 +17,13 @@ def fetch_historical_data(
 ) -> pd.DataFrame:
     """Fetch historical K-line data from Binance in batches with retry mechanism.
 
-    :param symbol: Trading pair (e.g., 'BTC/USDT')
-    :param timeframe: Time period (e.g., '1m', '1h', '1d')
-    :param start_date: Start time (ISO format, e.g., '2017-07-01T00:00:00Z')
-    :param limit: Maximum number of entries per request (default 1000)
-    :param max_retries: Maximum number of retries for fetching data (default 5)
-    :param verbose: If True, enable verbose logging (default True)
+    Args:
+        symbol: Trading pair (e.g., 'BTC/USDT')
+        timeframe: Time period (e.g., '1m', '1h', '1d')
+        start_date: Start time (ISO format, e.g., '2017-07-01T00:00:00Z')
+        limit: Maximum number of entries per request (default 1000)
+        max_retries: Maximum number of retries for fetching data (default 5)
+        verbose: If True, enable verbose logging (default True)
 
     :return: DataFrame containing all historical data
     """
@@ -64,15 +65,16 @@ def fetch_historical_data(
 def fetch_current_price(symbol: str) -> float:
     """Fetch the current price of a trading pair from Binance.
 
-    :param symbol: Trading pair (e.g., 'BTC/USDT')
-    
+    Args:
+        symbol: Trading pair (e.g., 'BTC/USDT')
+
     :return: Current price as a float, or None if an error occurs
     """
     try:
         ticker = exchange.fetch_ticker(symbol)
         current_price = ticker["last"]
-        logger.info(f"Current price for {symbol}: {current_price}")
+        logger.debug(f"Current price for {symbol}: {current_price}")
         return current_price
     except Exception as e:
         logger.error(f"Error fetching current price for {symbol}: {e}")
-        return None
+        raise
