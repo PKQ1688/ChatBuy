@@ -14,23 +14,31 @@ model_qwq32 = HfApiModel(
     provider="hyperbolic", model_id="Qwen/QwQ-32B", token=os.getenv("HF_TOKEN")
 )
 
-# model_qwq32 = LiteLLMModel(
-#     model_id="groq/qwen-qwq-32b", api_key=os.getenv("GROQ_API_KEY")
-# )
+model_qwen32 = LiteLLMModel(
+    model_id="groq/qwen-2.5-32b",
+    api_base="https://api.groq.com/openai/v1",
+    api_key=os.getenv("GROQ_API_KEY"),
+)
+
 
 if __name__ == "__main__":
     import time
 
-    messages = [
-        {"role": "system", "content": "Extract the event information."},
-        {
-            "role": "user",
-            "content": "Alice and Bob are going to a science fair on Friday",
-        },
-    ]
+    from smolagents import CodeAgent
+
+    agent = CodeAgent(
+        tools=[],  # No tools needed to demonstrate the issue
+        model=model_qwen32,
+        add_base_tools=False,
+        verbosity_level=2,
+    )
 
     st = time.time()
-    response = model_1120(messages)
-    print(response)
+    # Try to run a simple task
+    try:
+        result = agent.run("Say hello!")
+        print(result)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        print(f"Error: {str(e)}")
 
     print(f"Time taken: {time.time() - st:.2f} seconds")
