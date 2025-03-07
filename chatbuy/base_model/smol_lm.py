@@ -10,9 +10,11 @@ model_mini = LiteLLMModel("azure/gpt-4o-mini")
 model_0806 = LiteLLMModel(model_id="azure/gpt-4o-0806")
 model_1120 = LiteLLMModel(model_id="azure/gpt-4o-1120")
 
-# model_qwq32 = HfApiModel(
-#     provider="hyperbolic", model_id="Qwen/QwQ-32B", token=os.getenv("HF_TOKEN")
-# )
+model_deepseek_r1 = HfApiModel(
+    provider="hyperbolic",
+    model_id="deepseek-ai/DeepSeek-R1",
+    token=os.getenv("HF_TOKEN"),
+)
 
 model_qwen32 = LiteLLMModel(
     model_id="groq/qwen-2.5-32b",
@@ -40,7 +42,7 @@ if __name__ == "__main__":
 
     agent = CodeAgent(
         tools=[],  # No tools needed to demonstrate the issue
-        model=model_qwen32,
+        model=model_qwq32,
         add_base_tools=False,
         verbosity_level=2,
     )
