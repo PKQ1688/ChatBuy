@@ -1,4 +1,4 @@
-from base_model.smol_lm import model_qwen_code as model
+from base_model.smol_lm import model_deepseek_r1 as model
 from smolagents import GradioUI, tool
 
 # from smolagents.agents import ToolCallingAgent
@@ -14,4 +14,4 @@ agent = CodeAgent(
 )
 # response = agent.run("请查询今天ETH的价格")
 
-GradioUI(agent, file_upload_folder="data").launch()
+GradioUI(agent, file_upload_folder="data").launch(share=False)
