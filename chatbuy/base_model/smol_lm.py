@@ -10,10 +10,16 @@ model_mini = LiteLLMModel("azure/gpt-4o-mini")
 model_0806 = LiteLLMModel(model_id="azure/gpt-4o-0806")
 model_1120 = LiteLLMModel(model_id="azure/gpt-4o-1120")
 
+# model_deepseek_r1 = HfApiModel(
+#     provider="hyperbolic",
+#     model_id="deepseek-ai/DeepSeek-R1",
+#     token=os.getenv("HF_TOKEN"),
+# )
+
+
 model_deepseek_r1 = HfApiModel(
-    provider="hyperbolic",
     model_id="deepseek-ai/DeepSeek-R1",
-    token=os.getenv("HF_TOKEN"),
+    provider="together",
 )
 
 model_qwen32 = LiteLLMModel(
