@@ -22,6 +22,7 @@
         "litellm",
         "logfire",
         "MACD",
+        "matplotlib",
         "mccabe",
         "MIPRO",
         "ohlcv",
