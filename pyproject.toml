@@ -50,6 +50,7 @@ extend-select = [
   "C90",
   "UP",
   "I",
+  "D"
 ]
 flake8-quotes = {inline-quotes = "double", multiline-quotes = "double"}
 isort = {combine-as-imports = true}
