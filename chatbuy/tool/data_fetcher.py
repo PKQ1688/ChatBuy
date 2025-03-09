@@ -2,6 +2,12 @@ import time
 
 import ccxt
 import pandas as pd
+from tool.technical_indicator import (
+    calculate_bollinger_bands,
+    calculate_macd,
+    calculate_rsi,
+    calculate_sma,
+)
 from utils import logger
 
 exchange = ccxt.binance({"rateLimit": 1200, "enableRateLimit": True})
@@ -78,3 +84,40 @@ def fetch_current_price(symbol: str) -> float:
     except Exception as e:
         logger.error(f"Error fetching current price for {symbol}: {e}")
         raise
+
+
+def fetch_and_calculate_indicators(
+    symbol: str, timeframe: str, start_date: str, limit: int = 1000
+):
+    """Fetch historical data and calculate various technical indicators.
+
+    Args:
+        symbol: Trading pair (e.g., 'BTC/USDT')
+        timeframe: Time period (e.g., '1m', '1h', '1d')
+        start_date: Start time (ISO format, e.g., '2017-07-01T00:00:00Z')
+        limit: Maximum number of entries per request (default 1000)
+
+    Returns:
+        dict: Dictionary containing calculated indicators (MACD, Bollinger Bands, RSI, SMA)
+    """
+    df = fetch_historical_data(symbol, timeframe, start_date, limit)
+    prices = df["close"].tolist()
+
+    macd, signal_line = calculate_macd(prices)
+    middle_band, upper_band, lower_band = calculate_bollinger_bands(prices)
+    rsi = calculate_rsi(prices)
+    sma = calculate_sma(prices)
+
+    indicators = {
+        "MACD": macd,
+        "Signal Line": signal_line,
+        "Bollinger Bands": {
+            "Middle Band": middle_band,
+            "Upper Band": upper_band,
+            "Lower Band": lower_band,
+        },
+        "RSI": rsi,
+        "SMA": sma,
+    }
+
+    return indicators

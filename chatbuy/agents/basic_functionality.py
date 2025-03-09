@@ -1,7 +1,7 @@
 import logfire
 from base_model.pydantic_lm import model_qwq32
 from pydantic_ai import Agent, Tool
-from tool.data_indicators_fetcher import fetch_current_price, fetch_historical_data
+from tool.data_fetcher import fetch_current_price, fetch_historical_data
 
 logfire.configure()
 

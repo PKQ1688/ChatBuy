@@ -3,7 +3,7 @@ from smolagents import GradioUI, tool
 
 # from smolagents.agents import ToolCallingAgent
 from smolagents.agents import CodeAgent
-from tool.data_indicators_fetcher import fetch_current_price, fetch_historical_data
+from tool.data_fetcher import fetch_current_price, fetch_historical_data
 
 agent = CodeAgent(
     tools=[
