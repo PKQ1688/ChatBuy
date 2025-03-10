@@ -5,13 +5,20 @@ from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.yfinance import YFinanceTools
 from base_model.llm_models import AgnoModel
 
+model_config = {
+    "service": "azure",
+    "model_id": "gpt-4o-1120",
+}
+
+# model_config = {
+#     "service": "hf",
+#     "model_id": "qwen-2.5-32b",
+# }
+
 web_agent = Agent(
     name="Web Agent",
     role="在网上搜索信息",
-    model=AgnoModel(
-        service="azure",
-        model_id="gpt-4o-1120",
-    ),
+    model=AgnoModel(**model_config),
     tools=[DuckDuckGoTools()],
     instructions=dedent("""\
         你是一名经验丰富的网络研究员和新闻分析师！🔍
@@ -39,10 +46,7 @@ web_agent = Agent(
 finance_agent = Agent(
     name="Finance Agent",
     role="获取金融数据",
-    model=AgnoModel(
-        service="azure",
-        model_id="gpt-4o-1120",
-    ),
+    model=AgnoModel(**model_config),
     tools=[
         YFinanceTools(stock_price=True, analyst_recommendations=True, company_info=True)
     ],
@@ -71,10 +75,7 @@ finance_agent = Agent(
 
 agent_team = Agent(
     team=[web_agent, finance_agent],
-    model=AgnoModel(
-        service="azure",
-        model_id="gpt-4o-1120",
-    ),
+    model=AgnoModel(**model_config),
     instructions=dedent("""\
         你是一个著名财经新闻编辑部的主编！📰
 
@@ -102,11 +103,11 @@ agent_team = Agent(
 )
 
 # 示例用法，使用不同的查询
-agent_team.print_response("总结分析师建议并分享NVDA的最新新闻", stream=True)
-agent_team.print_response(
-    "AI半导体公司的市场前景和财务表现如何？",
-    stream=True,
-)
+# agent_team.print_response("总结分析师建议并分享NVDA的最新新闻", stream=True)
+# agent_team.print_response(
+#     "AI半导体公司的市场前景和财务表现如何？",
+#     stream=True,
+# )
 agent_team.print_response("分析TSLA的最新发展和财务表现", stream=True)
 
 # 更多示例提示：
