@@ -17,8 +17,8 @@ from base_model.llm_models import AgnoModel
 
 model_config = {
     "service": "groq",
-    "model_id": "qwen-qwq-32b",
-    # "model_id": "qwen-2.5-32b",
+    # "model_id": "qwen-qwq-32b",
+    "model_id": "qwen-2.5-32b",
 }
 
 web_agent = Agent(
