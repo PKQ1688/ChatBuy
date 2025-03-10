@@ -4,12 +4,15 @@ from agno.models.azure import AzureOpenAI
 from agno.models.deepseek import DeepSeek
 from agno.models.groq import Groq
 from agno.models.huggingface import HuggingFace
+from huggingface_hub import InferenceClient
 
 
 class AgnoModel:
     """A wrapper class for handling different language model services, currently supporting Azure OpenAI."""
 
-    def __init__(self, service="azure", model_id="gpt-4o-1120", provider="", **kwargs):
+    def __init__(
+        self, service="azure", model_id="gpt-4o-1120", provider="hf-inference", **kwargs
+    ):
         self.service = service
         self.model_id = model_id
         self.provider = provider
@@ -28,10 +31,13 @@ class AgnoModel:
             )
         elif self.service == "hf":
             # todo huggingface 的 第三方 provider 服务还不可用
+
+            client_hf = InferenceClient(
+                provider=self.provider, api_key=os.getenv("HF_TOKEN")
+            )
             return HuggingFace(
                 id=self.model_id,
-                provider=self.provider,
-                api_key=os.environ["HF_TOKEN"],
+                client=client_hf,
                 **self.kwargs,
             )
         elif self.service == "groq":
@@ -61,11 +67,16 @@ if __name__ == "__main__":
         # model=AgnoModel(
         #     service="hf",
         #     model_id="Qwen/QwQ-32B",
-        #     # provider="together",
+        #     provider="hyperbolic",
         # ),
+        model=AgnoModel(
+            service="hf",
+            model_id="deepseek-ai/DeepSeek-R1",
+            provider="hyperbolic",
+        ),
         # model=AgnoModel(service="groq", model_id="qwen-qwq-32b"),
-        model=AgnoModel(service="deepseek", model_id="deepseek-chat"),
+        # model=AgnoModel(service="deepseek", model_id="deepseek-chat"),
         markdown=True,
     )
 
-    agent.print_response(message="who are you?", stream=True)
+    agent.print_response(message="你是谁?", stream=True)

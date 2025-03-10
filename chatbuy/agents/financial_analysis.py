@@ -5,15 +5,21 @@ from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.yfinance import YFinanceTools
 from base_model.llm_models import AgnoModel
 
-model_config = {
-    "service": "azure",
-    "model_id": "gpt-4o-1120",
-}
+# model_config = {
+#     "service": "azure",
+#     "model_id": "gpt-4o-1120",
+# }
 
 # model_config = {
 #     "service": "hf",
-#     "model_id": "qwen-2.5-32b",
+#     "model_id": "Qwen/QwQ-32B",
 # }
+
+model_config = {
+    "service": "groq",
+    "model_id": "qwen-qwq-32b",
+    # "model_id": "qwen-2.5-32b",
+}
 
 web_agent = Agent(
     name="Web Agent",
