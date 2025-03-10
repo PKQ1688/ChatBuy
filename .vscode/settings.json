@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "agno",
         "backtesting",
         "Bollinger",
         "ccxt",
@@ -40,7 +41,8 @@
         "Tenkan",
         "timeframes",
         "trainset",
-        "venv"
+        "venv",
+        "yfinance"
     ],
     "cSpell.ignorePaths": [
         ".venv/**",
