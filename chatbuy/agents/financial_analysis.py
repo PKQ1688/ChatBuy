@@ -3,23 +3,25 @@ from textwrap import dedent
 from agno.agent import Agent
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.yfinance import YFinanceTools
+
+# from agno.tools.openbb import OpenBBTools
 from base_model.llm_models import AgnoModel
 
-# model_config = {
-#     "service": "azure",
-#     "model_id": "gpt-4o-1120",
-# }
+model_config = {
+    "service": "azure",
+    "model_id": "gpt-4o-1120",
+}
 
 # model_config = {
 #     "service": "hf",
 #     "model_id": "Qwen/QwQ-32B",
 # }
 
-model_config = {
-    "service": "groq",
-    # "model_id": "qwen-qwq-32b",
-    "model_id": "qwen-2.5-32b",
-}
+# model_config = {
+#     "service": "groq",
+#     # "model_id": "qwen-qwq-32b",
+#     "model_id": "qwen-2.5-32b",
+# }
 
 web_agent = Agent(
     name="Web Agent",
@@ -56,6 +58,7 @@ finance_agent = Agent(
     tools=[
         YFinanceTools(stock_price=True, analyst_recommendations=True, company_info=True)
     ],
+    # tools=[OpenBBTools()],
     instructions=dedent("""\
         你是一名擅长市场数据的金融分析师！📊
 
@@ -109,12 +112,12 @@ agent_team = Agent(
 )
 
 # 示例用法，使用不同的查询
-# agent_team.print_response("总结分析师建议并分享NVDA的最新新闻", stream=True)
+agent_team.run(message="总结分析师建议并分享NVDA的昨天的最新动态", stream=False, debug=True)
 # agent_team.print_response(
 #     "AI半导体公司的市场前景和财务表现如何？",
 #     stream=True,
 # )
-agent_team.print_response("分析TSLA的最新发展和财务表现", stream=True)
+# agent_team.print_response("帮我分析一下昨天纳斯达克相关的事件", stream=True, debug=True)
 
 # 更多示例提示：
 """
