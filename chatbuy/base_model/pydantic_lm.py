@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from openai import AsyncAzureOpenAI
 from pydantic_ai.models.groq import GroqModel
 from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.groq import GroqProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 
 load_dotenv(override=True)
@@ -30,7 +31,9 @@ class PydanticModel:
             return OpenAIModel(self.model_id, provider=gpt_provider, **self.kwargs)
         elif self.service == "groq":
             return GroqModel(
-                self.model_id, api_key=os.getenv("GROQ_API_KEY"), **self.kwargs
+                self.model_id,
+                provider=GroqProvider(api_key=os.getenv("GROQ_API_KEY")),
+                **self.kwargs,
             )
         elif self.service == "deepseek":
             deepseek_provider = OpenAIProvider(
