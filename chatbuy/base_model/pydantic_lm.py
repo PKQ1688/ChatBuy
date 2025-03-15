@@ -12,22 +12,21 @@ load_dotenv(override=True)
 class PydanticModel:
     """A wrapper class for handling different language model services using pydantic-ai."""
 
-    def __init__(self, service="azure", model_id="gpt-4o-1120", provider="", **kwargs):
+    def __init__(self, service="azure", model_id="gpt-4o-1120", **kwargs):
         self.service = service
         self.model_id = model_id
-        self.provider = provider
         self.kwargs = kwargs
 
         self.model = self.create_model()
 
     def create_model(self):
         if self.service == "azure":
-            gpt_client = AsyncAzureOpenAI(
+            azure_gpt_client = AsyncAzureOpenAI(
                 azure_endpoint=os.environ["AZURE_API_BASE"],
                 api_version=os.environ["AZURE_API_VERSION"],
                 api_key=os.environ["AZURE_API_KEY"],
             )
-            gpt_provider = OpenAIProvider(openai_client=gpt_client)
+            gpt_provider = OpenAIProvider(openai_client=azure_gpt_client)
             return OpenAIModel(self.model_id, provider=gpt_provider, **self.kwargs)
         elif self.service == "groq":
             return GroqModel(
@@ -41,9 +40,6 @@ class PydanticModel:
             return OpenAIModel(self.model_id, provider=deepseek_provider, **self.kwargs)
         else:
             raise ValueError(f"Service '{self.service}' not supported")
-
-    def __getattr__(self, name):
-        return getattr(self.model, name)
 
 
 # Pre-defined models for convenience
@@ -60,9 +56,13 @@ if __name__ == "__main__":
 
     from pydantic_ai import Agent
 
-    # Using the wrapper class directly
-    model = PydanticModel(service="groq", model_id="qwen-qwq-32b")
-    agent = Agent(model=model)
+    # Create models directly and pass the underlying model to Agent
+    # Option 1: Create the model directly and extract the underlying model
+    # groq_model = PydanticModel(service="groq", model_id="qwen-qwq-32b")
+    agent = Agent(model=model_1120.model)  # Pass the actual GroqModel instance
+
+    # Option 2: Or use model strings as expected by pydantic_ai
+    # agent = Agent(model="groq:qwen-qwq-32b")
 
     st = time.time()
     res = agent.run_sync("who are you?")
@@ -70,4 +70,4 @@ if __name__ == "__main__":
     print(f"Time taken: {time.time() - st:.2f} seconds")
 
     # Or using a pre-defined model
-    # agent = Agent(model=model_qwq32)
+    # agent = Agent(model=model_qwq32.model)  # Access the underlying model
