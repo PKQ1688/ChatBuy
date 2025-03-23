@@ -63,12 +63,16 @@ logger.addHandler(file_handler)
 
 # Define helper methods to maintain similar API to loguru
 def get_logger():
-    """Return the configured logger instance"""
+    """Return the configured logger instance."""
     return logger
 
 
 # Add context information wrapper (simpler than loguru's bind)
 class ContextLogger:
+    """A wrapper class that adds module context to logging messages.
+    
+    This provides a simpler alternative to loguru's bind functionality.
+    """
     def __init__(self, logger, module):
         self.logger = logger
         self.module = module
