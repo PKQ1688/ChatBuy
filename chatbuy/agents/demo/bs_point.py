@@ -4,7 +4,8 @@ import logfire
 from base_model.pydantic_lm import model_1120 as llm_model
 from pydantic import BaseModel
 from pydantic_ai import Agent, Tool
-from tool.technicals import fake_technical_analyst
+
+from chatbuy.tool.demo.technicals import fake_technical_analyst
 
 logfire.configure()
 
