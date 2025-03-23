@@ -7,7 +7,7 @@ from smolagents import tool
 from smolagents.agents import CodeAgent
 
 from chatbuy.base_model.smol_lm import model_1120 as model
-from chatbuy.tool.technicals import fake_technical_analyst
+from chatbuy.tool.demo.technicals import fake_technical_analyst
 
 
 @tool

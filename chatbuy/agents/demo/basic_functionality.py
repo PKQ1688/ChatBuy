@@ -1,7 +1,8 @@
 import logfire
-from base_model.pydantic_lm import model_1120 as model
 from pydantic_ai import Agent, Tool
-from tool.data_fetcher import (
+
+from chatbuy.base_model.pydantic_lm import model_1120 as model
+from chatbuy.tool.demo.data_fetcher import (
     fetch_and_calculate_indicators,
     fetch_current_price,
     fetch_historical_data,

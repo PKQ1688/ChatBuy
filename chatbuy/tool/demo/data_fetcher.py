@@ -2,7 +2,7 @@ import time
 
 import ccxt
 import pandas as pd
-from tool.technical_indicator import (
+from tool.demo.technical_indicator import (
     calculate_bollinger_bands,
     calculate_macd,
     calculate_rsi,
