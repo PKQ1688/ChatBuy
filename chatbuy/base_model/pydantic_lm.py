@@ -41,18 +41,27 @@ class PydanticModel:
                 base_url="https://api.deepseek.com",
             )
             return OpenAIModel(self.model_id, provider=deepseek_provider, **self.kwargs)
+        elif self.service == "openrouter":
+            openrouter_provider = OpenAIProvider(
+                api_key=os.environ["OPENROUTER_API_KEY"],
+                base_url="https://openrouter.ai/api/v1",
+            )
+            return OpenAIModel(
+                self.model_id, provider=openrouter_provider, **self.kwargs
+            )
         else:
             raise ValueError(f"Service '{self.service}' not supported")
 
 
 # Pre-defined models for convenience
-model_reason = PydanticModel(service="deepseek", model_id="deepseek-reasoner")
-model_4o = PydanticModel(service="azure", model_id="gpt4o")
-model_0806 = PydanticModel(service="azure", model_id="gpt-4o-0806")
-model_1120 = PydanticModel(service="azure", model_id="gpt-4o-1120")
-model_mini = PydanticModel(service="azure", model_id="gpt-4o-mini")
-model_qwen32 = PydanticModel(service="groq", model_id="qwen-2.5-32b")
-model_qwq32 = PydanticModel(service="groq", model_id="qwen-qwq-32b")
+# model_reason = PydanticModel(service="deepseek", model_id="deepseek-reasoner")
+# model_4o = PydanticModel(service="azure", model_id="gpt4o")
+# model_0806 = PydanticModel(service="azure", model_id="gpt-4o-0806")
+# model_1120 = PydanticModel(service="azure", model_id="gpt-4o-1120")
+# model_mini = PydanticModel(service="azure", model_id="gpt-4o-mini")
+# model_qwen32 = PydanticModel(service="groq", model_id="qwen-2.5-32b")
+# model_qwq32 = PydanticModel(service="groq", model_id="qwen-qwq-32b")
+
 
 if __name__ == "__main__":
     import time
@@ -62,7 +71,8 @@ if __name__ == "__main__":
     # Create models directly and pass the underlying model to Agent
     # Option 1: Create the model directly and extract the underlying model
     # groq_model = PydanticModel(service="groq", model_id="qwen-qwq-32b")
-    agent = Agent(model=model_1120.model)  # Pass the actual GroqModel instance
+    model_qwq = PydanticModel(service="openrouter", model_id="qwen/qwq-32b:free")
+    agent = Agent(model=model_qwq.model)  # Pass the actual GroqModel instance
 
     # Option 2: Or use model strings as expected by pydantic_ai
     # agent = Agent(model="groq:qwen-qwq-32b")
