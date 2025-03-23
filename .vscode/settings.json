@@ -29,6 +29,7 @@
         "ohlcv",
         "ollama",
         "openbb",
+        "openrouter",
         "phidata",
         "polyfit",
         "pydocstyle",
