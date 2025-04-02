@@ -23,6 +23,7 @@ dependencies = [
   "pydoll-python>=1.3.2",
   "python-dotenv>=1.0.1",
   "smolagents[litellm,mcp]>=1.10.0",
+  "stable-baselines3[extra]>=2.6.0",
   "talipp>=2.4.1",
   "yfinance>=0.2.54",
 ]
