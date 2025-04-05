@@ -1,218 +1,165 @@
 import os
+import sys
 
 import matplotlib.pyplot as plt
-import torch
-from stable_baselines3 import A2C, PPO, SAC, TD3
-from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
+import numpy as np
+import pandas as pd
+from stable_baselines3 import A2C, DQN, PPO
+from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import DummyVecEnv
 
-# Import your custom environment
-from chatbuy.rl_src.env.env_btc_ccxt import BitcoinEnv
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from env.env_base_trad import CryptoTradingEnv
+
+# Configuration
+DATA_PATH = "../data/BTC_USDT_1d_with_indicators.csv"
+WINDOW_SIZE = 20
+TRAIN_TEST_SPLIT = 0.8  # 80% of data for training, 20% for testing
+TOTAL_TIMESTEPS = 100000
+RANDOM_SEED = 42
+EVAL_FREQ = 10000
 
 
-def train_agent(
-    data_cwd,
-    price_ary=None,
-    tech_ary=None,
-    algorithm="PPO",
-    total_timesteps=500000,
-    eval_freq=10000,
-    n_eval_episodes=5,
-    save_path="./models/sb3_btc",
-    log_path="./logs/sb3_btc",
-    learning_rate=3e-4,
-    batch_size=64,
-    n_steps=2048,
-    device="auto",
-):
-    """Train a reinforcement learning agent on Bitcoin trading environment.
+def main():
+    """Main training function."""
+    # Load data
+    df = pd.read_csv(DATA_PATH)
 
-    Args:
-        data_cwd: Path to data directory
-        price_ary: Price array (if not loading from data_cwd)
-        tech_ary: Technical indicators array (if not loading from data_cwd)
-        algorithm: RL algorithm to use ('PPO', 'A2C', 'SAC', or 'TD3')
-        total_timesteps: Total timesteps for training
-        eval_freq: Evaluation frequency in timesteps
-        n_eval_episodes: Number of episodes for evaluation
-        save_path: Path to save the trained model
-        log_path: Path to save logs
-        learning_rate: Learning rate for the algorithm
-        batch_size: Batch size for training
-        n_steps: Number of steps per update for on-policy algorithms
-        device: Device to use ('auto', 'cpu', 'cuda')
+    # Calculate split index
+    split_idx = int(len(df) * TRAIN_TEST_SPLIT)
 
-    Returns:
-        The trained model
-    """
-    # Create directories if they don't exist
-    os.makedirs(save_path, exist_ok=True)
-    os.makedirs(log_path, exist_ok=True)
+    # Create train and test dataframes
+    train_df = df.iloc[:split_idx].copy()
+    test_df = df.iloc[split_idx:].copy()
 
-    # Create training environment
-    env_train = BitcoinEnv(
-        data_cwd=data_cwd, price_ary=price_ary, tech_ary=tech_ary, mode="train"
-    )
+    # Save train and test datasets temporarily
+    train_path = "../data/train_data_temp.csv"
+    test_path = "../data/test_data_temp.csv"
+    train_df.to_csv(train_path, index=False)
+    test_df.to_csv(test_path, index=False)
+
+    # Create and wrap the training environment
+    env = CryptoTradingEnv(train_path, window_size=WINDOW_SIZE)
+    env = Monitor(env)
+    env = DummyVecEnv([lambda: env])
 
     # Create evaluation environment
-    env_eval = BitcoinEnv(
-        data_cwd=data_cwd, price_ary=price_ary, tech_ary=tech_ary, mode="test"
-    )
+    eval_env = CryptoTradingEnv(test_path, window_size=WINDOW_SIZE)
+    eval_env = Monitor(eval_env)
+    eval_env = DummyVecEnv([lambda: eval_env])
 
-    # Wrap environments with Monitor for logging
-    env_train = Monitor(env_train, os.path.join(log_path, "train"))
-    env_eval = Monitor(env_eval, os.path.join(log_path, "eval"))
-
-    # Set up callbacks
+    # Create evaluation callback
     eval_callback = EvalCallback(
-        env_eval,
-        best_model_save_path=os.path.join(save_path, "best_model"),
-        log_path=log_path,
-        eval_freq=eval_freq,
-        n_eval_episodes=n_eval_episodes,
+        eval_env,
+        best_model_save_path="./logs/",
+        log_path="./logs/",
+        eval_freq=EVAL_FREQ,
         deterministic=True,
         render=False,
     )
 
-    checkpoint_callback = CheckpointCallback(
-        save_freq=eval_freq,
-        save_path=os.path.join(save_path, "checkpoints"),
-        name_prefix="btc_model",
+    # Initialize the agent (PPO algorithm)
+    model = PPO(
+        "MlpPolicy",
+        env,
+        learning_rate=0.0003,
+        n_steps=2048,
+        batch_size=64,
+        n_epochs=10,
+        gamma=0.99,
+        gae_lambda=0.95,
+        clip_range=0.2,
+        clip_range_vf=None,
+        normalize_advantage=True,
+        ent_coef=0.0,
+        vf_coef=0.5,
+        max_grad_norm=0.5,
+        use_sde=False,
+        sde_sample_freq=-1,
+        target_kl=None,
+        tensorboard_log="./logs/",
+        create_eval_env=False,
+        policy_kwargs=None,
+        verbose=1,
+        seed=RANDOM_SEED,
+        device="auto",
+        _init_setup_model=True,
     )
-
-    # Initialize the appropriate algorithm
-    if algorithm == "PPO":
-        model = PPO(
-            "MlpPolicy",
-            env_train,
-            learning_rate=learning_rate,
-            n_steps=n_steps,
-            batch_size=batch_size,
-            verbose=1,
-            tensorboard_log=log_path,
-            device=device,
-        )
-    elif algorithm == "A2C":
-        model = A2C(
-            "MlpPolicy",
-            env_train,
-            learning_rate=learning_rate,
-            n_steps=n_steps,
-            verbose=1,
-            tensorboard_log=log_path,
-            device=device,
-        )
-    elif algorithm == "SAC":
-        model = SAC(
-            "MlpPolicy",
-            env_train,
-            learning_rate=learning_rate,
-            batch_size=batch_size,
-            verbose=1,
-            tensorboard_log=log_path,
-            device=device,
-        )
-    elif algorithm == "TD3":
-        model = TD3(
-            "MlpPolicy",
-            env_train,
-            learning_rate=learning_rate,
-            batch_size=batch_size,
-            verbose=1,
-            tensorboard_log=log_path,
-            device=device,
-        )
-    else:
-        raise ValueError(
-            f"Algorithm {algorithm} not supported. Choose from 'PPO', 'A2C', 'SAC', or 'TD3'"
-        )
 
     # Train the agent
+    print("Starting training...")
     model.learn(
-        total_timesteps=total_timesteps, callback=[eval_callback, checkpoint_callback]
+        total_timesteps=TOTAL_TIMESTEPS, callback=eval_callback, log_interval=10
     )
 
-    # Save the final model
-    model.save(os.path.join(save_path, "final_model"))
+    # Save the trained model
+    model.save("crypto_trading_ppo")
 
-    return model
-
-
-def evaluate_agent(model, data_cwd=None, price_ary=None, tech_ary=None, mode="test"):
-    """Evaluate a trained agent and plot performance."""
-    # Create evaluation environment
-    env = BitcoinEnv(
-        data_cwd=data_cwd, price_ary=price_ary, tech_ary=tech_ary, mode=mode
-    )
-
-    # Evaluate the agent
+    # Evaluate the model
+    print("Evaluating the model...")
     mean_reward, std_reward = evaluate_policy(
-        model, env, n_eval_episodes=1, deterministic=True
+        model, eval_env, n_eval_episodes=10, deterministic=True
     )
     print(f"Mean reward: {mean_reward:.2f} +/- {std_reward:.2f}")
 
-    # Run through one full episode for plotting
-    state = env.reset()
+    # Run a test episode for visualization
+    print("Running a test episode...")
+    run_test_episode(model, test_path)
+
+    # Clean up temporary files
+    os.remove(train_path)
+    os.remove(test_path)
+
+
+def run_test_episode(model, test_data_path):
+    """Run a test episode using the trained model and visualize the results.
+
+    Args:
+        model: The trained RL model
+        test_data_path: Path to the test data
+    """
+    # Create a test environment
+    env = CryptoTradingEnv(test_data_path, window_size=WINDOW_SIZE)
+
+    # Reset the environment
+    obs = env.reset()
     done = False
-    episode_returns = [1]  # Start with the initial value (1x initial account)
-    btc_returns = []
-    init_price = None
+    total_reward = 0
 
+    # Store actions for visualization
+    actions = []
+
+    # Run through the test data
     while not done:
-        if init_price is None:
-            init_price = env.day_price[0]
+        action, _ = model.predict(obs, deterministic=True)
+        obs, reward, done, info = env.step(action)
 
-        btc_returns.append(env.day_price[0] / init_price)
-        action, _ = model.predict(state, deterministic=True)
-        state, reward, done, _ = env.step(action)
-        episode_returns.append(env.total_asset / env.initial_account)
+        total_reward += reward
+        actions.append(action)
 
-    # Plot the results
+        # Optionally render the environment
+        # env.render()
+
+    # Plot results
+    env.plot_results()
+
+    # Plot actions (Buy, Hold, Sell)
     plt.figure(figsize=(12, 6))
-    plt.plot(episode_returns, label="Agent Return")
-    plt.plot(btc_returns, color="yellow", label="BTC Return")
+    plt.plot(actions)
+    plt.title("Actions Taken by Agent (0=Sell, 1=Hold, 2=Buy)")
+    plt.xlabel("Step")
+    plt.ylabel("Action")
+    plt.yticks([0, 1, 2], ["Sell", "Hold", "Buy"])
     plt.grid(True)
-    plt.title(f"Cumulative Return ({mode} mode)")
-    plt.xlabel("Day")
-    plt.ylabel("Multiple of Initial Account")
-    plt.legend()
+    plt.show()
 
-    # Save the plot
-    os.makedirs("./plots", exist_ok=True)
-    plt.savefig(f"./plots/sb3_btc_{mode}_return.jpg")
-    plt.close()
-
-    return episode_returns, btc_returns
-
-
-def main():
-    # Set parameters
-    data_cwd = (
-        "/Users/zhutaonan/Desktop/chatbuy/chatbuy/rl_src/data"  # Adjust path as needed
-    )
-    algorithm = "PPO"  # Options: "PPO", "A2C", "SAC", "TD3"
-    total_timesteps = 1000000
-
-    # Set device
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using device: {device}")
-
-    # Train the agent
-    model = train_agent(
-        data_cwd=data_cwd,
-        algorithm=algorithm,
-        total_timesteps=total_timesteps,
-        device=device,
-    )
-
-    # Evaluate the agent on test data
-    evaluate_agent(model, data_cwd=data_cwd, mode="test")
-
-    # Evaluate the agent on trading data
-    evaluate_agent(model, data_cwd=data_cwd, mode="trade")
-
-    print("Training and evaluation complete!")
+    # Print final results
+    portfolio_value = env.balance + env.btc_held * env.current_price
+    print(f"Final portfolio value: ${portfolio_value:.2f}")
+    print(f"Return: {((portfolio_value / env.initial_balance) - 1) * 100:.2f}%")
+    print(f"Total reward: {total_reward:.2f}")
 
 
 if __name__ == "__main__":
