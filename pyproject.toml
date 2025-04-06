@@ -13,6 +13,7 @@ dependencies = [
   "azure-ai-inference>=1.0.0b9",
   "ccxt>=4.4.65",
   "gradio>=5.20.1",
+  "gymnasium>=1.1.1",
   "httpx[socks]>=0.28.1",
   "huggingface-hub>=0.29.2",
   "logfire>=3.7.1",
