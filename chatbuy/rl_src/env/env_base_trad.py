@@ -1,51 +1,78 @@
-import os
+from typing import Optional
 
-import gym
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from gym import spaces
-from sklearn.preprocessing import StandardScaler
 
 
-class CryptoTradingEnv(gym.Env):
-    """A basic cryptocurrency trading environment for reinforcement learning."""
+class TradingEnv:
+    """A base class for cryptocurrency trading environment.
 
-    metadata = {"render.modes": ["human"]}
+    This environment simulates trading of cryptocurrencies with features:
+    - Discrete actions: Buy, Sell, Hold
+    - Observations: Price data and technical indicators
+    - Rewards: Returns based on portfolio value changes
+    """
 
     def __init__(
-        self, data_path, window_size=20, initial_balance=10000, commission=0.001
+        self,
+        data_path: str,
+        window_size: int = 20,
+        initial_balance: float = 10000,
+        commission: float = 0.001,
+        reward_scaling: float = 1.0,
     ):
         """Initialize the trading environment.
 
         Args:
-            data_path (str): Path to the CSV file containing cryptocurrency data
-            window_size (int): Number of previous observations to include in state
-            initial_balance (float): Initial account balance
-            commission (float): Trading commission rate (e.g., 0.001 for 0.1%)
+            data_path: Path to the CSV file with trading data
+            window_size: Size of the observation window (lookback period)
+            initial_balance: Initial account balance
+            commission: Trading commission percentage (e.g., 0.001 = 0.1%)
+            reward_scaling: Scaling factor for reward
         """
-        super(CryptoTradingEnv, self).__init__()
-
-        # Load and preprocess data
-        self.df = pd.read_csv(data_path)
-        self.df["date"] = pd.to_datetime(self.df["timestamp"])
-        self.df.set_index("date", inplace=True)
-
-        # Drop rows with missing values
-        self.df.dropna(inplace=True)
-
-        # Environment parameters
+        self.data = self._load_data(data_path)
         self.window_size = window_size
         self.initial_balance = initial_balance
         self.commission = commission
+        self.reward_scaling = reward_scaling
 
-        # Features for the state
-        self.features = [
-            "open",
-            "high",
-            "low",
-            "close",
-            "volume",
+        # Define action and observation spaces
+        self.action_space_size = 3  # Buy, Sell, Hold
+
+        # Number of features (OHLCV + technical indicators)
+        # timestamp, open, high, low, close, volume, bb_upper, bb_middle, bb_lower, macd, signal, histogram
+        self.num_features = 11  # excluding timestamp
+
+        # Size of flattened observation space
+        self.observation_space_size = self.window_size * self.num_features
+
+        # Initialize variables
+        self.reset()
+
+    def _load_data(self, data_path: str) -> pd.DataFrame:
+        """Load and preprocess the data from CSV file."""
+        df = pd.read_csv(data_path)
+
+        # Convert timestamp to datetime if it's not already
+        if not pd.api.types.is_datetime64_any_dtype(df["timestamp"]):
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+        # Fill NaN values in technical indicators
+        # For this example, we'll forward fill, but you may want to use different strategies
+        df = df.fillna(method="ffill")
+
+        # Normalize the price and technical features to avoid large values
+        price_columns = ["open", "high", "low", "close"]
+
+        # Apply normalization to price columns relative to close
+        for col in price_columns:
+            df[f"{col}_norm"] = df[col] / df["close"].shift(1) - 1.0
+
+        # Apply log normalization to volume
+        df["volume_norm"] = np.log(df["volume"] + 1) / 15  # Arbitrary scaling
+
+        # Normalize technical indicators
+        indicator_columns = [
             "bb_upper",
             "bb_middle",
             "bb_lower",
@@ -53,213 +80,188 @@ class CryptoTradingEnv(gym.Env):
             "signal",
             "histogram",
         ]
+        for col in indicator_columns:
+            if col in ["bb_upper", "bb_middle", "bb_lower"]:
+                df[f"{col}_norm"] = df[col] / df["close"].shift(1) - 1.0
+            else:
+                # For MACD-related features, they can be both positive and negative
+                max_abs_val = max(abs(df[col].max()), abs(df[col].min()))
+                if max_abs_val > 0:
+                    df[f"{col}_norm"] = df[col] / max_abs_val
+                else:
+                    df[f"{col}_norm"] = df[col]
 
-        # Normalize features
-        self.scaler = StandardScaler()
-        self.df[self.features] = self.scaler.fit_transform(self.df[self.features])
+        # Drop rows with NaN (first few rows due to normalization)
+        df = df.dropna()
 
-        # Action and observation spaces
-        # Action: 0=Sell, 1=Hold, 2=Buy
-        self.action_space = spaces.Discrete(3)
+        # Reset index
+        df = df.reset_index(drop=True)
 
-        # Observation space: previous window_size of price data + current position
-        obs_shape = (window_size + 1) * len(
-            self.features
-        ) + 2  # +2 for balance and holdings
-        self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=(obs_shape,), dtype=np.float32
-        )
+        return df
 
-        # Episode variables (will be initialized in reset)
-        self.current_step = None
-        self.balance = None
-        self.btc_held = None
-        self.current_price = None
-        self.account_history = None
-        self.returns_history = None
-        self.done = None
+    def reset(self):
+        """Reset the environment to the initial state."""
+        self.balance = self.initial_balance
+        self.crypto_held = 0
+        self.current_step = (
+            self.window_size
+        )  # Start after window_size to have enough history
 
-    def _next_observation(self):
-        """Return the current state (observation)."""
-        # Get the window of features
-        frame = np.array([])
+        # Track portfolio value history
+        self.portfolio_values = [self.initial_balance]
 
-        # If not enough data for the window, pad with zeros
-        if self.current_step < self.window_size:
-            # For padding
-            padding = np.zeros(
-                (self.window_size - self.current_step) * len(self.features)
-            )
-            frame = np.append(
-                padding, self.df[self.features].values[: self.current_step].flatten()
-            )
-        else:
-            # Normal case
-            frame = (
-                self.df[self.features]
-                .values[self.current_step - self.window_size : self.current_step]
-                .flatten()
-            )
+        # Track positions for visualization later
+        self.trades_done = []
 
-        # Add the current price data
-        current_data = self.df[self.features].values[self.current_step]
-        frame = np.append(frame, current_data)
+        # Calculate initial portfolio value
+        self.portfolio_value = self.balance + self.crypto_held * self.current_price
 
-        # Append the account information: balance and BTC held
-        frame = np.append(frame, [self.balance / self.initial_balance, self.btc_held])
+        return self._get_observation()
 
-        return frame
+    @property
+    def current_price(self) -> float:
+        """Get the current closing price."""
+        return self.data.iloc[self.current_step]["close"]
 
-    def _calculate_reward(self, action):
-        """Calculate the reward for the current step."""
-        # Reward is the change in portfolio value
-        prev_portfolio_value = (
-            self.balance
-            + self.btc_held * self.df["close"].values[max(0, self.current_step - 1)]
-        )
-        current_portfolio_value = self.balance + self.btc_held * self.current_price
-
-        reward = current_portfolio_value - prev_portfolio_value
-
-        # Penalize for trading (to account for commission and encourage less frequent trading)
-        if action != 1:  # If action is not Hold
-            reward -= self.commission * current_portfolio_value
-
-        return reward
-
-    def step(self, action):
-        """Take an action in the environment and return the next state, reward, done, and info.
-
-        Args:
-            action (int): The action to take (0=Sell, 1=Hold, 2=Buy)
+    def _get_observation(self) -> np.ndarray:
+        """
+        Get the observation at the current step.
 
         Returns:
-            tuple: (observation, reward, done, info)
+            A flattened array of feature values from the current window
         """
-        # Execute the action
-        self._take_action(action)
+        # Get window of data
+        window_data = self.data.iloc[
+            self.current_step - self.window_size : self.current_step
+        ]
 
-        # Move to the next step
+        # Extract normalized features
+        feature_columns = [
+            "open_norm",
+            "high_norm",
+            "low_norm",
+            "close_norm",
+            "volume_norm",
+            "bb_upper_norm",
+            "bb_middle_norm",
+            "bb_lower_norm",
+            "macd_norm",
+            "signal_norm",
+            "histogram_norm",
+        ]
+
+        # Create observation
+        observation = window_data[feature_columns].values
+
+        # Add account state features (normalized)
+        # - Owned crypto as a fraction of what could be owned with the entire balance
+        crypto_owned_norm = self.crypto_held * self.current_price / self.initial_balance
+
+        # - Cash balance as a fraction of initial balance
+        balance_norm = self.balance / self.initial_balance
+
+        # Add these features to the observation
+        observation_with_account = np.append(
+            observation.flatten(), [crypto_owned_norm, balance_norm]
+        )
+
+        return observation_with_account
+
+    def step(self, action: int) -> tuple[np.ndarray, float, bool, dict]:
+        """Take a step in the environment.
+
+        Args:
+            action: The action to take (0: Hold, 1: Buy, 2: Sell)
+
+        Returns:
+            observation: The next observation
+            reward: The reward for taking the action
+            done: Whether the episode is done
+            info: Additional information
+        """
+        # Get current price
+        current_price = self.current_price
+
+        # Previous portfolio value for calculating returns
+        prev_portfolio_value = self.portfolio_value
+
+        # Execute action
+        if action == 1:  # Buy
+            # Calculate maximum crypto that can be bought
+            max_crypto_to_buy = self.balance / (current_price * (1 + self.commission))
+
+            # Buy all possible crypto
+            self.crypto_held += max_crypto_to_buy
+            self.balance -= max_crypto_to_buy * current_price * (1 + self.commission)
+
+            # Record the trade
+            self.trades_done.append(
+                {
+                    "step": self.current_step,
+                    "type": "buy",
+                    "price": current_price,
+                    "amount": max_crypto_to_buy,
+                    "cost": max_crypto_to_buy * current_price * (1 + self.commission),
+                }
+            )
+
+        elif action == 2:  # Sell
+            if self.crypto_held > 0:
+                # Sell all crypto
+                sell_amount = self.crypto_held
+                self.balance += sell_amount * current_price * (1 - self.commission)
+                self.crypto_held = 0
+
+                # Record the trade
+                self.trades_done.append(
+                    {
+                        "step": self.current_step,
+                        "type": "sell",
+                        "price": current_price,
+                        "amount": sell_amount,
+                        "proceeds": sell_amount * current_price * (1 - self.commission),
+                    }
+                )
+
+        # Advance to next step
         self.current_step += 1
 
-        # Check if we're at the end of the data
-        if self.current_step >= len(self.df):
-            self.done = True
+        # Update portfolio value
+        self.portfolio_value = self.balance + self.crypto_held * self.current_price
+        self.portfolio_values.append(self.portfolio_value)
 
-        # Update current price
-        if not self.done:
-            self.current_price = self.df["close"].values[self.current_step]
+        # Calculate reward based on portfolio returns
+        reward = (
+            (self.portfolio_value / prev_portfolio_value) - 1
+        ) * self.reward_scaling
 
-        # Calculate reward
-        reward = self._calculate_reward(action)
+        # Check if episode is done
+        done = self.current_step >= len(self.data) - 1
 
-        # Get the next observation
-        obs = self._next_observation()
-
-        # Update account history
-        portfolio_value = self.balance + self.btc_held * self.current_price
-        self.account_history.append(portfolio_value)
-        self.returns_history.append((portfolio_value / self.initial_balance) - 1)
+        # Get new observation
+        observation = self._get_observation()
 
         # Return step information
         info = {
-            "step": self.current_step,
+            "portfolio_value": self.portfolio_value,
             "balance": self.balance,
-            "btc_held": self.btc_held,
-            "portfolio_value": portfolio_value,
-            "return": self.returns_history[-1],
+            "crypto_held": self.crypto_held,
+            "current_price": current_price,
+            "step": self.current_step,
         }
 
-        return obs, reward, self.done, info
+        return observation, reward, done, info
 
-    def _take_action(self, action):
-        """Execute the specified action.
+    def render(self, mode: str = "human") -> Optional[np.ndarray]:
+        """Render the environment.
 
-        Args:
-            action (int): The action to take (0=Sell, 1=Hold, 2=Buy)
+        For now, this just prints the current state.
         """
-        # Get current BTC price
-        self.current_price = self.df["close"].values[self.current_step]
+        print(f"Step: {self.current_step}")
+        print(f"Price: {self.current_price:.2f}")
+        print(f"Balance: {self.balance:.2f}")
+        print(f"Crypto Held: {self.crypto_held:.8f}")
+        print(f"Portfolio Value: {self.portfolio_value:.2f}")
+        print("----------------------------")
 
-        # Calculate transaction amount (fixed for simplicity)
-        transaction_amount = 1.0  # Buy/sell 1 BTC at a time
-
-        # Apply commission for transactions
-        commission_amount = self.commission * self.current_price * transaction_amount
-
-        if action == 0:  # Sell
-            # Can only sell if we have BTC
-            if self.btc_held > 0:
-                # Sell at most what we have
-                sell_amount = min(self.btc_held, transaction_amount)
-                self.balance += sell_amount * self.current_price * (1 - self.commission)
-                self.btc_held -= sell_amount
-
-        elif action == 2:  # Buy
-            # Can only buy if we have enough balance
-            max_btc_can_buy = self.balance / (
-                self.current_price * (1 + self.commission)
-            )
-
-            if max_btc_can_buy > 0:
-                buy_amount = min(transaction_amount, max_btc_can_buy)
-                self.balance -= buy_amount * self.current_price * (1 + self.commission)
-                self.btc_held += buy_amount
-
-        # Action 1 (Hold) does nothing
-
-    def reset(self):
-        """Reset the environment to its initial state.
-
-        Returns:
-            numpy.array: The initial observation
-        """
-        # Reset episode variables
-        self.current_step = 0
-        self.balance = self.initial_balance
-        self.btc_held = 0
-        self.current_price = self.df["close"].values[self.current_step]
-        self.account_history = [self.initial_balance]
-        self.returns_history = [0]
-        self.done = False
-
-        return self._next_observation()
-
-    def render(self, mode="human", close=False):
-        """Render the environment."""
-        if mode == "human":
-            portfolio_value = self.balance + self.btc_held * self.current_price
-            print(f"Step: {self.current_step}")
-            print(f"Price: ${self.current_price:.2f}")
-            print(f"Balance: ${self.balance:.2f}")
-            print(f"BTC Held: {self.btc_held:.4f}")
-            print(f"Portfolio Value: ${portfolio_value:.2f}")
-            print(
-                f"Return: {((portfolio_value / self.initial_balance) - 1) * 100:.2f}%"
-            )
-            print("-" * 50)
-
-    def plot_results(self):
-        """Plot the results of the episode."""
-        plt.figure(figsize=(12, 8))
-
-        # Plot portfolio value
-        plt.subplot(2, 1, 1)
-        plt.plot(self.account_history)
-        plt.title("Portfolio Value Over Time")
-        plt.xlabel("Step")
-        plt.ylabel("Portfolio Value ($)")
-
-        # Plot returns
-        plt.subplot(2, 1, 2)
-        plt.plot([r * 100 for r in self.returns_history])
-        plt.title("Returns Over Time")
-        plt.xlabel("Step")
-        plt.ylabel("Return (%)")
-
-        plt.tight_layout()
-        plt.show()
-
-    def close(self):
-        """Close the environment."""
-        pass
+        return None
