@@ -62,7 +62,7 @@ def visualize_btc_with_indicators(
         date_num = mdates.date2num(data[date_column].values)
 
     # Create figure
-    fig = plt.figure(figsize=(14, 12))
+    plt.figure(figsize=(14, 12))
 
     # Three subplots: Price and Bollinger Bands, Volume, MACD
     ax1 = plt.subplot2grid((4, 1), (0, 0), rowspan=2)

@@ -10,10 +10,11 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "ccxt>=4.4.65",
+  "httpx[socks]>=0.28.1",
   "matplotlib>=3.10.1",
-  "openai>=1.65.4",
+  "mplfinance>=0.12.10b0",
+  "pydantic-ai>=0.0.53",
   "python-dotenv>=1.0.1",
-  "stable-baselines3[extra]>=2.6.0",
   "talipp>=2.4.1",
 ]
 authors = [
