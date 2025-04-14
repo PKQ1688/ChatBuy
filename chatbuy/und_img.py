@@ -60,7 +60,11 @@ class TradePipeline:
 
 
 if __name__ == "__main__":
-    image_path = "data/BTC_indicators_20250408_165321.png"  # 替换为你的本地图片路径
+    image_path = (
+        "data/btc_daily/coin_120_20210101_20210430.png"  # 替换为你的本地图片路径
+    )
 
-    pipeline = TradePipeline()
+    pipeline = TradePipeline(
+        strategy="如果到布林道下轨就买入，上轨到达时卖出，剩下的时候就观望"
+    )
     pipeline.run_pipeline(image_path)
