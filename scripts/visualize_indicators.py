@@ -224,16 +224,18 @@ def batch_generate_images_with_time_range(
     output_dir="data",
     length=120,
     end_time=None,
+    start_time=None,
     step=1,
     show=False,
 ):
-    """批量生成图片，支持指定时间长度和结束时间节点.
+    """批量生成图片，支持指定时间长度、起始时间和结束时间节点.
 
     Parameters:
     - data_path: 数据文件路径
     - output_dir: 图片输出目录
     - length: 每张图片包含的数据条数
     - end_time: 结束时间（字符串'YYYY-MM-DD'或None，None则为数据最后一天）
+    - start_time: 起始时间（字符串'YYYY-MM-DD'或None，None则为数据最早一天）
     - step: 滑动窗口步长
     - show: 是否显示图片
     """
@@ -268,15 +270,25 @@ def batch_generate_images_with_time_range(
         if end_idx == 0:
             raise ValueError("指定的结束时间早于数据最早时间！")
 
+    # 确定起始时间
+    if start_time is None:
+        start_idx = 0
+    else:
+        start_time_dt = pd.to_datetime(start_time)
+        start_idx = df[df[date_column] >= start_time_dt].index.min()
+        if pd.isna(start_idx):
+            raise ValueError("指定的起始时间晚于数据最晚时间！")
+        start_idx = int(start_idx)
+
     # 批量滑动窗口生成图片
-    for i in range(0, end_idx - length + 1, step):
-        sub_df = df.iloc[i : i + length]
+    for i in range(start_idx, end_idx - length + 1, step):
+        sub_df = df.iloc[i : i + length].copy()
         if len(sub_df) < length:
             continue
         visualize_btc_with_indicators(
             sub_df,
             output_dir=output_dir,
-            output_file_prefix=f"BTC_indicators_{i + 1}_{i + length}",
+            output_file_prefix=f"coin_{length}",
             show=show,
         )
 
@@ -285,9 +297,10 @@ if __name__ == "__main__":
     # 示例：生成最后120天的图片
     batch_generate_images_with_time_range(
         data_path="data/BTC_USDT_1d_with_indicators.csv",
-        output_dir="data",
+        output_dir="data/btc_daily",
         length=120,
-        end_time=None,  # 或如 '2021-12-31'
+        end_time="2021-12-31",  # 或如 '2021-12-31'
+        start_time="2021-01-01",  # 或如 '2021-01-01'
         step=1,
         show=False,
     )
