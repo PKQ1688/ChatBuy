@@ -9,11 +9,11 @@ description = "use gpt to chat with trading bot"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+  "agno>=1.1.9",
   "ccxt>=4.4.65",
-  "httpx[socks]>=0.28.1",
   "matplotlib>=3.10.1",
   "mplfinance>=0.12.10b0",
-  "pydantic-ai>=0.0.53",
+  "openai>=1.73.0",
   "python-dotenv>=1.0.1",
   "talipp>=2.4.1",
 ]

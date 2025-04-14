@@ -8,26 +8,23 @@ import pandas as pd
 from mplfinance.original_flavor import candlestick_ohlc
 
 
-def visualize_btc_with_indicators(
-    data_path="data/BTC_USDT_1d_with_indicators.csv", output_dir="data"
+def visualize_btc_with_indicators(  # noqa: C901
+    data: pd.DataFrame,
+    output_dir="data",
+    output_file_prefix="BTC_indicators",
+    show=True,
 ):
-    """Read BTC data with technical indicators and create visualization charts.
+    """根据传入的DataFrame生成一张K线+指标图片.
 
     Parameters:
-    data_path: Path to the BTC data file
-    output_dir: Output directory for charts
+    - data: pd.DataFrame，已筛选好时间区间的数据
+    - output_dir: 图片输出目录
+    - output_file_prefix: 图片文件名前缀
+    - show: 是否显示图片
     """
-    # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
-    # Read data
-    data = pd.read_csv(data_path)
-    data = data[-120:]
-
-    # Print column names for debugging
-    print("CSV file columns:", data.columns.tolist())
-
-    # Check if time-related columns exist
+    # 自动识别时间列
     date_column = None
     possible_date_columns = [
         "date",
@@ -39,41 +36,30 @@ def visualize_btc_with_indicators(
         "datetime",
         "Datetime",
     ]
-
     for col in possible_date_columns:
         if col in data.columns:
             date_column = col
             break
 
-    # If no date column is found, use index as date
     if date_column is None:
-        print("No date column found, using index for X axis")
         data["index"] = np.arange(len(data))
         x_values = data["index"]
         x_label = "Data Points"
         date_num = data["index"].values
     else:
-        # Convert date column to datetime format
-        print(f"Using '{date_column}' as date column")
         data[date_column] = pd.to_datetime(data[date_column])
         x_values = data[date_column]
         x_label = "Date"
-        # Convert datetime to float for candlestick
         date_num = mdates.date2num(data[date_column].values)
 
-    # Create figure
     plt.figure(figsize=(14, 12))
-
-    # Three subplots: Price and Bollinger Bands, Volume, MACD
     ax1 = plt.subplot2grid((4, 1), (0, 0), rowspan=2)
     ax2 = plt.subplot2grid((4, 1), (2, 0), sharex=ax1)
     ax3 = plt.subplot2grid((4, 1), (3, 0), sharex=ax1)
 
-    # If using date column, set date format
     if date_column is not None:
         ax1.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
 
-    # Check if required columns exist
     required_columns = [
         "open",
         "high",
@@ -88,14 +74,11 @@ def visualize_btc_with_indicators(
         "bb_lower",
     ]
     missing_columns = [col for col in required_columns if col not in data.columns]
-
     if missing_columns:
         print(f"Warning: Missing columns in data: {missing_columns}")
 
-    # Plot price with candlestick and Bollinger Bands
     ohlc_columns = ["open", "high", "low", "close"]
     if all(col in data.columns for col in ohlc_columns):
-        # Prepare OHLC data for candlestick chart
         ohlc = []
         for i in range(len(data)):
             ohlc.append(
@@ -107,13 +90,9 @@ def visualize_btc_with_indicators(
                     data["close"].iloc[i],
                 ]
             )
-
-        # Plot candlesticks
         candlestick_ohlc(
             ax1, ohlc, width=0.6, colorup="green", colordown="red", alpha=0.8
         )
-
-        # If Bollinger Bands indicators exist, plot them
         if all(col in data.columns for col in ["bb_upper", "bb_middle", "bb_lower"]):
             ax1.plot(
                 x_values,
@@ -145,17 +124,13 @@ def visualize_btc_with_indicators(
             ax1.set_title("BTC/USDT Price and Bollinger Bands", fontsize=12)
         else:
             ax1.set_title("BTC/USDT Price", fontsize=12)
-
         ax1.set_ylabel("Price (USDT)")
         ax1.legend(loc="upper left")
         ax1.grid(True, alpha=0.3)
     elif "close" in data.columns:
-        # Fallback to line chart if only close price is available
         ax1.plot(
             x_values, data["close"], label="BTC Price", color="black", linewidth=1.5
         )
-
-        # If Bollinger Bands indicators exist, plot them
         if all(col in data.columns for col in ["bb_upper", "bb_middle", "bb_lower"]):
             ax1.plot(
                 x_values, data["bb_upper"], label="Upper Band", color="red", alpha=0.7
@@ -176,7 +151,6 @@ def visualize_btc_with_indicators(
             ax1.set_title("BTC/USDT Price and Bollinger Bands", fontsize=12)
         else:
             ax1.set_title("BTC/USDT Price", fontsize=12)
-
         ax1.set_ylabel("Price (USDT)")
         ax1.legend(loc="upper left")
         ax1.grid(True, alpha=0.3)
@@ -189,7 +163,6 @@ def visualize_btc_with_indicators(
             verticalalignment="center",
         )
 
-    # Plot volume
     if "volume" in data.columns:
         ax2.bar(x_values, data["volume"], color="blue", alpha=0.5, width=0.8)
         ax2.set_ylabel("Volume")
@@ -203,15 +176,11 @@ def visualize_btc_with_indicators(
             verticalalignment="center",
         )
 
-    # Plot MACD
     if all(col in data.columns for col in ["macd", "signal", "histogram"]):
         ax3.plot(x_values, data["macd"], label="MACD", color="blue", linewidth=1.2)
         ax3.plot(x_values, data["signal"], label="Signal", color="red", linewidth=1.2)
-
-        # Create histogram
         colors = ["green" if val >= 0 else "red" for val in data["histogram"]]
         ax3.bar(x_values, data["histogram"], color=colors, alpha=0.5, width=0.8)
-
         ax3.set_title("MACD Indicator", fontsize=12)
         ax3.set_ylabel("MACD Value")
         ax3.legend(loc="upper left")
@@ -225,49 +194,100 @@ def visualize_btc_with_indicators(
             verticalalignment="center",
         )
 
-    # Set x-axis label
     plt.xlabel(x_label)
-
-    # If using date, rotate date labels to avoid overlap
     if date_column is not None:
         plt.xticks(rotation=45)
-
-    # Adjust layout
     plt.tight_layout()
 
-    # Generate output filename
-    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_file = os.path.join(output_dir, f"BTC_indicators_{current_time}.png")
+    # 文件名带上时间区间
+    if date_column is not None:
+        start_str = data[date_column].iloc[0].strftime("%Y%m%d")
+        end_str = data[date_column].iloc[-1].strftime("%Y%m%d")
+        output_file = os.path.join(
+            output_dir, f"{output_file_prefix}_{start_str}_{end_str}.png"
+        )
+    else:
+        output_file = os.path.join(
+            output_dir,
+            f"{output_file_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
+        )
 
-    # Save chart
     plt.savefig(output_file, dpi=300, bbox_inches="tight")
     print(f"Chart saved to: {output_file}")
+    if show:
+        plt.show()
+    plt.close()
 
-    # Show chart
-    plt.show()
+
+def batch_generate_images_with_time_range(
+    data_path="data/BTC_USDT_1d_with_indicators.csv",
+    output_dir="data",
+    length=120,
+    end_time=None,
+    step=1,
+    show=False,
+):
+    """批量生成图片，支持指定时间长度和结束时间节点.
+
+    Parameters:
+    - data_path: 数据文件路径
+    - output_dir: 图片输出目录
+    - length: 每张图片包含的数据条数
+    - end_time: 结束时间（字符串'YYYY-MM-DD'或None，None则为数据最后一天）
+    - step: 滑动窗口步长
+    - show: 是否显示图片
+    """
+    df = pd.read_csv(data_path)
+    # 自动识别时间列
+    date_column = None
+    possible_date_columns = [
+        "date",
+        "time",
+        "timestamp",
+        "Date",
+        "Time",
+        "Timestamp",
+        "datetime",
+        "Datetime",
+    ]
+    for col in possible_date_columns:
+        if col in df.columns:
+            date_column = col
+            break
+    if date_column is None:
+        raise ValueError("未找到时间列，无法按时间筛选！")
+
+    df[date_column] = pd.to_datetime(df[date_column])
+
+    # 确定结束时间
+    if end_time is None:
+        end_idx = len(df)
+    else:
+        end_time_dt = pd.to_datetime(end_time)
+        end_idx = df[df[date_column] <= end_time_dt].shape[0]
+        if end_idx == 0:
+            raise ValueError("指定的结束时间早于数据最早时间！")
+
+    # 批量滑动窗口生成图片
+    for i in range(0, end_idx - length + 1, step):
+        sub_df = df.iloc[i : i + length]
+        if len(sub_df) < length:
+            continue
+        visualize_btc_with_indicators(
+            sub_df,
+            output_dir=output_dir,
+            output_file_prefix=f"BTC_indicators_{i + 1}_{i + length}",
+            show=show,
+        )
 
 
 if __name__ == "__main__":
-    try:
-        visualize_btc_with_indicators()
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        # Try using absolute path
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        project_dir = os.path.dirname(script_dir)
-        data_path = os.path.join(project_dir, "data", "BTC_USDT_1d_with_indicators.csv")
-        output_dir = os.path.join(project_dir, "data")
-        print(f"Trying absolute path: {data_path}")
-
-        try:
-            visualize_btc_with_indicators(data_path, output_dir)
-        except Exception as detailed_error:
-            print(f"Detailed error information: {detailed_error}")
-
-            # Try to read and output the first few lines of the CSV file to help debugging
-            try:
-                print("\nTrying to read first 5 rows of CSV file:")
-                temp_data = pd.read_csv(data_path, nrows=5)
-                print(temp_data.head())
-            except Exception as csv_error:
-                print(f"Cannot read CSV file: {csv_error}")
+    # 示例：生成最后120天的图片
+    batch_generate_images_with_time_range(
+        data_path="data/BTC_USDT_1d_with_indicators.csv",
+        output_dir="data",
+        length=120,
+        end_time=None,  # 或如 '2021-12-31'
+        step=1,
+        show=False,
+    )
