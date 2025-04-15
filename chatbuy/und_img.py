@@ -31,7 +31,8 @@ class TradePipeline:
     ):
         if use_openrouter:
             model = OpenRouter(
-                id="openai/gpt-4.1",
+                # id="openai/gpt-4.1",
+                id="google/gemini-2.0-flash-001",
                 # id="deepseek/deepseek-chat-v3-0324:free",
                 # id="openai/gpt-4.1-nano",
             )
