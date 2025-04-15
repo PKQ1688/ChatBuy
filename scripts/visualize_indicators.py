@@ -299,8 +299,8 @@ if __name__ == "__main__":
         data_path="data/BTC_USDT_1d_with_indicators.csv",
         output_dir="data/btc_daily",
         length=120,
+        start_time="2021-6-30",  # 或如 '2021-01-01'
         end_time="2021-12-31",  # 或如 '2021-12-31'
-        start_time="2021-01-01",  # 或如 '2021-01-01'
         step=1,
         show=False,
     )

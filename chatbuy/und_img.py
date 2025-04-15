@@ -1,9 +1,14 @@
+import asyncio
+import glob
+import os
 from typing import Literal
 
-from agno.agent import Agent
+import pandas as pd
+from agno.agent import Agent, RunResponse
 from agno.media import Image
 from agno.models.openrouter import OpenRouter
 from pydantic import BaseModel
+from tqdm import tqdm
 
 
 class TradeAdvice(BaseModel):
@@ -27,14 +32,20 @@ class TradePipeline:
     """
 
     def __init__(
-        self, strategy: str = "如果到布林道下轨就买入，上轨到达时卖出，剩下的时候就观望"
+        self,
+        strategy: str = "Buy when the price hits the lower Bollinger Band, sell when it hits the upper band, otherwise hold.",
+        debug_mode: bool = False,
     ):
         self.agent = Agent(
             model=OpenRouter(
-                id="openrouter/optimus-alpha",
+                # id="openai/gpt-4.1-nano",
+                # id="openai/gpt-4.1-mini",
+                id="openai/gpt-4.1",
+                # id="google/gemini-2.5-pro-preview-03-25"
             ),
             response_model=TradeAdvice,
-            instructions="根据我提供给的策略，给出交易判断",
+            description="Provide a trading decision based on the strategy I provide.",
+            debug_mode=debug_mode,
         )
         self.strategy = strategy
 
@@ -51,20 +62,73 @@ class TradePipeline:
         TradeAdvice
             The trade advice based on the analysis of the chart.
         """
-        result = self.agent.run(
-            f"策略如下:{self.strategy}，请根据策略给出交易判断",
+        response: RunResponse = self.agent.run(
+            f"Strategy: {self.strategy}.",
             images=[Image(filepath=image_path)],
-        ).content
+        )
+        return response.content
 
-        print(result)
+    async def a_run_pipeline(self, image_path: str) -> TradeAdvice:
+        """Asynchronous version, suitable for agents that support async."""
+        response: RunResponse = await self.agent.arun(
+            f"Strategy: {self.strategy}.",
+            images=[Image(filepath=image_path)],
+        )
+        return response.content
+
+
+async def batch_process_images(image_dir: str, output_csv: str, strategy: str):
+    """Batch process all images in the given directory asynchronously, obtain trade advice for each, and save the results to a CSV file.
+
+    Args:
+        image_dir (str): Directory containing images.
+        output_csv (str): Output CSV file path.
+        strategy (str): Trading strategy description.
+    """
+    pipeline = TradePipeline(strategy=strategy)
+    image_paths = glob.glob(os.path.join(image_dir, "*.png")) + glob.glob(
+        os.path.join(image_dir, "*.jpg")
+    )
+    # image_paths = image_paths[:5]
+
+    async def process(img_path):
+        advice = await pipeline.a_run_pipeline(img_path)
+
+        action = str(advice.action)
+        reason = str(advice.reason)
+
+        filename = os.path.splitext(os.path.basename(img_path))[0]
+        trade_time = filename.rsplit("_", 1)[-1]
+        return {
+            "trade_time": trade_time,
+            "action": action,
+            "reason": reason,
+            "image": os.path.basename(img_path),
+        }
+
+    tasks = [process(img_path) for img_path in image_paths]
+    results = []
+    for coro in tqdm(
+        asyncio.as_completed(tasks), total=len(tasks), desc="Processing images"
+    ):
+        res = await coro
+        results.append(res)
+
+    df = pd.DataFrame(results)
+    df.sort_values("trade_time", inplace=True)
+    df.to_csv(output_csv, index=False, encoding="utf-8-sig")
+    print(f"Processed {len(results)} images, results saved to {output_csv}")
 
 
 if __name__ == "__main__":
-    image_path = (
-        "data/btc_daily/coin_120_20210101_20210430.png"  # 替换为你的本地图片路径
-    )
+    # Configuration parameters
+    image_dir = "data/btc_daily"  # Replace with your image folder path
+    output_csv = "output/trade_advice_results.csv"  # Output CSV path
+    strategy = "Buy when the lowest price of the cryptocurrency falls below the lower Bollinger Band, sell when the highest price rises above the upper band, otherwise hold."
 
-    pipeline = TradePipeline(
-        strategy="如果到布林道下轨就买入，上轨到达时卖出，剩下的时候就观望"
-    )
-    pipeline.run_pipeline(image_path)
+    # res = TradePipeline(strategy=strategy, debug_mode=True).run_pipeline(
+    #     image_path="data/btc_daily/coin_120_20210712_20211108.png"
+    # )
+    # print(res)
+    # Run the asynchronous batch processing
+    asyncio.run(batch_process_images(image_dir, output_csv, strategy))

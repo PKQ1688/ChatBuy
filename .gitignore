@@ -10,8 +10,6 @@ eggs/
 
 .cache
 
-.python-version
-
 # Environments
 .env
 .venv
@@ -25,3 +23,5 @@ uv.lock
 .logfire/
 logs/
 .gradio/
+
+output/
