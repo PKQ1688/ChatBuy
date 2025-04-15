@@ -1,14 +1,11 @@
-import asyncio
-import glob
 import os
 from typing import Literal
 
-import pandas as pd
 from agno.agent import Agent, RunResponse
 from agno.media import Image
+from agno.models.openai.like import OpenAILike
 from agno.models.openrouter import OpenRouter
 from pydantic import BaseModel
-from tqdm import tqdm
 
 
 class TradeAdvice(BaseModel):
@@ -25,110 +22,107 @@ class TradeAdvice(BaseModel):
 
 
 class TradePipeline:
-    """Represents a trading pipeline with a specific strategy.
-
-    strategy : str
-        The trading strategy being used.
-    """
+    """Unified trading inference pipeline, supports two input modes: image K-line and text K-line."""
 
     def __init__(
         self,
-        strategy: str = "Buy when the price hits the lower Bollinger Band, sell when it hits the upper band, otherwise hold.",
         debug_mode: bool = False,
+        use_openrouter: bool = False,
     ):
-        self.agent = Agent(
-            model=OpenRouter(
-                # id="openai/gpt-4.1-nano",
-                # id="openai/gpt-4.1-mini",
+        if use_openrouter:
+            model = OpenRouter(
                 id="openai/gpt-4.1",
-                # id="google/gemini-2.5-pro-preview-03-25"
-            ),
+                # id="deepseek/deepseek-chat-v3-0324:free",
+                # id="openai/gpt-4.1-nano",
+            )
+        else:
+            model = OpenAILike(
+                id="deepseek-ai/DeepSeek-V3-0324",
+                base_url="https://router.huggingface.co/hyperbolic/v1",
+                api_key=os.environ["HF_TOKEN"],
+            )
+
+        self.agent = Agent(
+            model=model,
             response_model=TradeAdvice,
             description="Provide a trading decision based on the strategy I provide.",
             debug_mode=debug_mode,
         )
-        self.strategy = strategy
 
-    def run_pipeline(self, image_path: str) -> TradeAdvice:
-        """Run the trading pipeline with the provided image path.
+    def run_pipeline(
+        self,
+        strategy: str = "Buy when the price hits the lower Bollinger Band, sell when it hits the upper band, otherwise hold.",
+        image_path: str | None = None,
+        markdown_text: str | None = None,
+    ):
+        """Unified entry point, supports three modes.
 
-        Parameters
-        ----------
-        image_path : str
-            The path to the image file.
+        - Only pass image_path (image K-line)
+        - Only pass markdown_text (text K-line)
+        - Pass both image_path and markdown_text (image + text joint inference)
+
+        Parameters:
+            image_path: Image file path, optional
+            markdown_text: K-line markdown text, optional
 
         Returns:
-        -------
-        TradeAdvice
-            The trade advice based on the analysis of the chart.
+            TradeAdvice
         """
+        if not image_path and not markdown_text:
+            raise ValueError(
+                "image_path and markdown_text cannot both be empty, at least one must be provided"
+            )
+        msg = f"Strategy: {strategy}."
+        if markdown_text:
+            msg += f"\n\nHere is the recent K-line data in markdown table:\n{markdown_text}"
+        images = [Image(filepath=image_path)] if image_path else None
         response: RunResponse = self.agent.run(
-            f"Strategy: {self.strategy}.",
-            images=[Image(filepath=image_path)],
+            msg,
+            images=images,
         )
         return response.content
 
-    async def a_run_pipeline(self, image_path: str) -> TradeAdvice:
-        """Asynchronous version, suitable for agents that support async."""
-        response: RunResponse = await self.agent.arun(
-            f"Strategy: {self.strategy}.",
-            images=[Image(filepath=image_path)],
-        )
-        return response.content
-
-
-async def batch_process_images(image_dir: str, output_csv: str, strategy: str):
-    """Batch process all images in the given directory asynchronously, obtain trade advice for each, and save the results to a CSV file.
-
-    Args:
-        image_dir (str): Directory containing images.
-        output_csv (str): Output CSV file path.
-        strategy (str): Trading strategy description.
-    """
-    pipeline = TradePipeline(strategy=strategy)
-    image_paths = glob.glob(os.path.join(image_dir, "*.png")) + glob.glob(
-        os.path.join(image_dir, "*.jpg")
-    )
-    # image_paths = image_paths[:5]
-
-    async def process(img_path):
-        advice = await pipeline.a_run_pipeline(img_path)
-
-        action = str(advice.action)
-        reason = str(advice.reason)
-
-        filename = os.path.splitext(os.path.basename(img_path))[0]
-        trade_time = filename.rsplit("_", 1)[-1]
-        return {
-            "trade_time": trade_time,
-            "action": action,
-            "reason": reason,
-            "image": os.path.basename(img_path),
-        }
-
-    tasks = [process(img_path) for img_path in image_paths]
-    results = []
-    for coro in tqdm(
-        asyncio.as_completed(tasks), total=len(tasks), desc="Processing images"
+    async def a_run_pipeline(
+        self,
+        strategy: str = "Buy when the price hits the lower Bollinger Band, sell when it hits the upper band, otherwise hold.",
+        image_path: str | None = None,
+        markdown_text: str | None = None,
     ):
-        res = await coro
-        results.append(res)
+        """Asynchronous unified entry point, supports three modes.
 
-    df = pd.DataFrame(results)
-    df.sort_values("trade_time", inplace=True)
-    df.to_csv(output_csv, index=False, encoding="utf-8-sig")
-    print(f"Processed {len(results)} images, results saved to {output_csv}")
+        - Only pass image_path (image K-line)
+        - Only pass markdown_text (text K-line)
+        - Pass both image_path and markdown_text (image + text joint inference)
+
+        Parameters:
+            image_path: Image file path, optional
+            markdown_text: K-line markdown text, optional
+
+        Returns:
+            TradeAdvice
+        """
+        if not image_path and not markdown_text:
+            raise ValueError(
+                "image_path and markdown_text cannot both be empty, at least one must be provided"
+            )
+        msg = f"Strategy: {strategy}."
+        if markdown_text:
+            msg += f"\n\nHere is the recent K-line data in markdown table:\n{markdown_text}"
+        images = [Image(filepath=image_path)] if image_path else None
+        response: RunResponse = await self.agent.arun(
+            msg,
+            images=images,
+        )
+        return response.content
 
 
 if __name__ == "__main__":
-    # Configuration parameters
-    image_dir = "data/btc_daily"  # Replace with your image folder path
-    output_csv = "output/trade_advice_results.csv"  # Output CSV path
-    strategy = "Buy when the lowest price of the cryptocurrency falls below the lower Bollinger Band, sell when the highest price rises above the upper band, otherwise hold."
-
-    # res = TradePipeline(strategy=strategy, debug_mode=True).run_pipeline(
-    #     image_path="data/btc_daily/coin_120_20210712_20211108.png"
-    # )
-    # print(res)
-    # Run the asynchronous batch processing
-    asyncio.run(batch_process_images(image_dir, output_csv, strategy))
+    pipe = TradePipeline(
+        debug_mode=False,
+        use_openrouter=True,
+    )
+    res = pipe.run_pipeline(
+        strategy="Buy when the price hits the lower Bollinger Band, sell when it hits the upper band, otherwise hold.",
+        image_path="data/btc_daily/coin_120_20210630_20211027.png",
+    )
+    print(res)
