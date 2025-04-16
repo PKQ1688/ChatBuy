@@ -1,0 +1,67 @@
+﻿trade_time,action,reason
+2021-10-27,sell,"The last candle is near the upper band of the Bollinger Bands, according to the strategy, it's time to sell."
+2021-10-28,sell,The closing price of the last day's K-line is above the upper rail of the Bollinger Bands.
+2021-10-29,sell,"The last candlestick is near the upper band of the Bollinger Bands, indicating an overbought condition according to the strategy."
+2021-10-30,sell,The price has risen to the upper band of the Bollinger Bands.
+2021-10-31,sell,The last day's candlestick price is above the upper Bollinger Band.
+2021-11-01,sell,"The price is near the upper band of the Bollinger Bands on the last day (2021-11-01). According to the strategy, when the price rises to the Bollinger Bands, it is time to sell."
+2021-11-02,sell,"The last candlestick is near the upper band of the Bollinger Bands, which means selling."
+2021-11-03,sell,The price of the last candle is near the upper band of the Bollinger Bands.
+2021-11-04,sell,"The latest candlestick is red and the price is near the upper Bollinger Band, indicating a potential sell signal."
+2021-11-05,sell,"The last candle is above the upper Bollinger Band, indicating an opportunity to sell according to the strategy."
+2021-11-06,hold,The closing price of the last candle is between the upper and lower bands of the Bollinger Bands.
+2021-11-07,sell,"The last day's candle is touching the upper band of Bollinger Bands, so sell."
+2021-11-08,sell,"The last candle is red and the price is near the upper band of the Bollinger Bands. According to the strategy, the action is to sell."
+2021-11-09,sell,The last candle is near or above the upper Bollinger Band. 
+2021-11-10,sell,"The last day's price candle is touching the upper band of the bollinger bands, therefore, according to the strategy we should sell."
+2021-11-11,sell,The last candlestick is near the upper band of the Bollinger Bands.
+2021-11-12,hold,"The price is within the Bollinger Bands, so we hold."
+2021-11-13,sell,The last day's price is near the upper band of the Bollinger Bands.
+2021-11-14,sell,"The last candlestick is above the upper Bollinger Band, indicating an overbought condition, thus signaling a sell."
+2021-11-15,sell,The price is at the upper band of the Bollinger Bands.
+2021-11-16,sell,"The last candle is near the upper band of the Bollinger Bands, indicating a potential sell signal."
+2021-11-17,hold,"The last day's price is within the Bollinger Bands, so the action is to hold."
+2021-11-18,sell,"The last day's price has risen to the Bollinger Upper Band, fulfilling the selling condition."
+2021-11-19,hold,The price is within the Bollinger Bands.
+2021-11-20,sell,The price is at the upper band of the Bollinger Bands.
+2021-11-21,hold,The last candle is within the Bollinger Bands.
+2021-11-22,hold,The last day's price is not above the upper band or below the lower band.
+2021-11-23,hold,The price is within the Bollinger Bands.
+2021-11-24,hold,The price is not at the upper or lower Bollinger Band on the last day.
+2021-11-25,hold,The last day's price is neither above the upper band nor below the lower band.
+2021-11-26,hold,The last candlestick is not beyond the upper or lower Bollinger Bands.
+2021-11-27,hold,"The last day's price is within the Bollinger Bands, so we hold."
+2021-11-28,hold,The price is not at the upper or lower band.
+2021-11-29,hold,"The price is between the upper and lower Bollinger Bands, so hold."
+2021-11-30,hold,The price on the last day is within the Bollinger Bands.
+2021-12-01,hold,The price is not at the upper or lower Bollinger Band on the last day.
+2021-12-02,hold,"The price is within the Bollinger Bands, so we hold."
+2021-12-03,hold,The price is not at the upper or lower Bollinger Band on the last day.
+2021-12-04,hold,The last day's price is within the Bollinger Bands.
+2021-12-05,hold,The last candle price is between the upper and lower Bollinger Bands.
+2021-12-06,hold,"The last day's price is within the Bollinger Bands, so hold."
+2021-12-07,hold,The last candle is not above the upper Bollinger Band or below the lower Bollinger Band.
+2021-12-08,hold,The price is not at the upper or lower Bollinger Band on the last day.
+2021-12-09,hold,"The price isn't above the upper band or below the lower band on the last day, so we hold."
+2021-12-10,buy,"The last day's price fell below the lower Bollinger Band, indicating a buy opportunity according to the strategy."
+2021-12-11,hold,"The last day's price is within the Bollinger Bands, so we hold."
+2021-12-12,hold,The price on the last day is not above the upper Bollinger Band nor below the lower Bollinger Band.
+2021-12-13,sell,The price on the last day (2021-12-13) is near or above the upper Bollinger Band.
+2021-12-14,hold,"The last candlestick is within the Bollinger Bands, so the decision is to hold."
+2021-12-15,buy,"The closing price of the last candle is below the lower Bollinger Band, indicating an oversold condition and a potential buy signal."
+2021-12-16,hold,The last candle is between the upper and lower Bollinger Bands.
+2021-12-17,hold,The price is neither above the upper Bollinger Band nor below the lower Bollinger Band on the last day (2021-12-17).
+2021-12-18,hold,The price is not at the upper or lower Bollinger Band on the last day.
+2021-12-19,hold,The price is not above the upper Bollinger Band or below the lower Bollinger Band.
+2021-12-20,hold,"The price is not at the upper or lower Bollinger Band, so there is no need to buy or sell."
+2021-12-21,hold,The price is not at the upper or lower Bollinger Band on the last day.
+2021-12-22,hold,The price is not at the upper or lower Bollinger Band on the last day.
+2021-12-23,hold,The price is not at the upper or lower Bollinger Band on the last day. 
+2021-12-24,hold,The price is neither below the lower band nor above the upper band on the last day.
+2021-12-25,hold,"The last candle of 2021-12-25 is within the Bollinger Bands, so the action is hold."
+2021-12-26,hold,The last candle of the graph is not above the upper band or below the lower band.
+2021-12-27,hold,The last day's price is between the upper and lower Bollinger Bands.
+2021-12-28,hold,The price is not at the upper or lower Bollinger Band on the last day.
+2021-12-29,hold,The price is not at the upper or lower Bollinger Band on the last day.
+2021-12-30,hold,The last candle on 2021-12-30 is not above the upper Bollinger Band or below the lower Bollinger Band.
+2021-12-31,hold,"The price is within the Bollinger Bands, so hold."

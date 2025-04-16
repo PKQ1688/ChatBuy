@@ -49,6 +49,7 @@
         "openbb",
         "openrouter",
         "optimus",
+        "pbar",
         "phidata",
         "polyfit",
         "pydocstyle",

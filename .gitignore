@@ -24,4 +24,4 @@ uv.lock
 logs/
 .gradio/
 
-output/
+.DS_Store

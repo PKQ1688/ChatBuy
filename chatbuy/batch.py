@@ -39,6 +39,48 @@ def get_image_paths_by_timestamp(image_dir: str, exts=None):
     return img_map
 
 
+def _prepare_batch_data(
+    image_dir: str | None = None,
+    csv_path: str | None = None,
+    window_size: int = 30,
+    start_timestamp: str = None,
+    end_timestamp: str = None,
+):
+    img_timestamps = set()
+    md_timestamps = set()
+    img_map = {}
+    md_windows = {}
+
+    if image_dir:
+        img_map = get_image_paths_by_timestamp(image_dir)
+        img_timestamps = set(img_map.keys())
+
+    if csv_path:
+        df = pd.read_csv(csv_path)
+        if start_timestamp or end_timestamp:
+            df["timestamp"] = df["timestamp"].astype(str)
+            if start_timestamp:
+                df = df[df["timestamp"] >= start_timestamp]
+            if end_timestamp:
+                df = df[df["timestamp"] <= end_timestamp]
+        df["timestamp"] = df["timestamp"].astype(str)
+        md_timestamps = set(df["timestamp"])
+        for i in range(len(df) - window_size + 1):
+            window = df.iloc[i : i + window_size]
+            ts = str(window.iloc[-1]["timestamp"])
+            md_windows[ts] = window
+
+    if not image_dir and not csv_path:
+        raise ValueError("Either image_dir or csv_path must be provided.")
+
+    all_timestamps = sorted(img_timestamps | md_timestamps, key=lambda x: x)
+    if start_timestamp:
+        all_timestamps = [ts for ts in all_timestamps if ts >= start_timestamp]
+    if end_timestamp:
+        all_timestamps = [ts for ts in all_timestamps if ts <= end_timestamp]
+
+    return all_timestamps, img_map, md_windows
+
 async def batch_process(
     image_dir: str | None = None,
     csv_path: str | None = None,
@@ -51,63 +93,14 @@ async def batch_process(
 ):
     """Unified batch process: for each timestamp, process image and/or markdown if available."""
     pipeline = TradePipeline(use_openrouter=use_openrouter)
-    results = []
-
-    img_timestamps = set()
-    md_timestamps = set()
-    img_map = {}  # Initialize img_map as an empty dictionary
-    md_windows = {}  # Initialize md_windows here
-
-    if image_dir:
-        img_map = get_image_paths_by_timestamp(image_dir)
-        img_timestamps = set(img_map.keys())
-
-    # Load markdown data
-    if csv_path:
-        df = pd.read_csv(csv_path)
-        if start_timestamp or end_timestamp:
-            # Convert timestamp column to string for consistent comparison
-            df["timestamp"] = df["timestamp"].astype(str)
-
-            if start_timestamp:
-                df = df[df["timestamp"] >= start_timestamp]
-
-            if end_timestamp:
-                df = df[df["timestamp"] <= end_timestamp]
-
-        df["timestamp"] = df["timestamp"].astype(str)
-        md_timestamps = set(df["timestamp"])
-
-        # Build a mapping from timestamp to markdown window (last row's timestamp == ts)
-        for i in range(len(df) - window_size + 1):
-            window = df.iloc[i : i + window_size]
-            ts = str(window.iloc[-1]["timestamp"])
-            md_windows[ts] = window
-
-    if not image_dir and not csv_path:
-        raise ValueError("Either image_dir or csv_path must be provided.")
-
-    # Build all timestamps
-    all_timestamps = sorted(img_timestamps | md_timestamps, key=lambda x: x)
-
-    # Optionally filter by start/end timestamp
-    if start_timestamp:
-        all_timestamps = [ts for ts in all_timestamps if ts >= start_timestamp]
-    if end_timestamp:
-        all_timestamps = [ts for ts in all_timestamps if ts <= end_timestamp]
-
-    tasks = []
-    for ts in all_timestamps:
-        img_path = img_map.get(ts)
-        md_window = md_windows.get(ts)
-        if img_path or md_window is not None:
-            tasks.append((ts, img_path, md_window))
+    all_timestamps, img_map, md_windows = _prepare_batch_data(
+        image_dir, csv_path, window_size, start_timestamp, end_timestamp
+    )
 
     async def process_one(ts, img_path, md_window):
         md_text = None
         if md_window is not None:
             md_text = md_window.to_markdown(index=False)
-
         advice = await pipeline.a_run_pipeline(
             strategy=strategy,
             image_path=img_path,
@@ -115,26 +108,77 @@ async def batch_process(
         )
         action = str(advice.action)
         reason = str(advice.reason)
-
         return {
             "trade_time": ts,
             "action": action,
             "reason": reason,
         }
 
-    coros = [process_one(ts, img_path, md_window) for ts, img_path, md_window in tasks]
-    for coro in tqdm(
-        asyncio.as_completed(coros), total=len(coros), desc="Processing unified batch"
-    ):
-        res = await coro
-        results.append(res)
+    tasks = []
+    for ts in all_timestamps:
+        img_path = img_map.get(ts)
+        md_window = md_windows.get(ts)
+        if img_path or md_window is not None:
+            tasks.append(process_one(ts, img_path, md_window))
+
+    with tqdm(total=len(tasks), desc="Processing unified batch") as pbar:
+        async def process_with_progress(task):
+            result = await task
+            pbar.update(1)
+            return result
+
+        progress_tasks = [process_with_progress(task) for task in tasks]
+        results = await asyncio.gather(*progress_tasks)
 
     out_df = pd.DataFrame(results)
     out_df.sort_values("trade_time", inplace=True)
     out_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
-
     print(f"Processed {len(results)} timestamps, results saved to {output_csv}")
 
+
+def batch_process_sync(
+    image_dir: str | None = None,
+    csv_path: str | None = None,
+    output_csv: str = "output/trade_advice_unified_results.csv",
+    strategy: str | None = None,
+    use_openrouter: bool = True,
+    window_size: int = 30,
+    start_timestamp: str = None,
+    end_timestamp: str = None,
+):
+    """同步版本：逐个顺序处理每个 timestamp."""
+    pipeline = TradePipeline(use_openrouter=use_openrouter)
+    all_timestamps, img_map, md_windows = _prepare_batch_data(
+        image_dir, csv_path, window_size, start_timestamp, end_timestamp
+    )
+
+    results = []
+    with tqdm(total=len(all_timestamps), desc="Processing unified batch (sync)") as pbar:
+        for ts in all_timestamps:
+            img_path = img_map.get(ts)
+            md_window = md_windows.get(ts)
+            if img_path or md_window is not None:
+                md_text = None
+                if md_window is not None:
+                    md_text = md_window.to_markdown(index=False)
+                advice = pipeline.run_pipeline(
+                    strategy=strategy,
+                    image_path=img_path,
+                    markdown_text=md_text,
+                )
+                action = str(advice.action)
+                reason = str(advice.reason)
+                results.append({
+                    "trade_time": ts,
+                    "action": action,
+                    "reason": reason,
+                })
+            pbar.update(1)
+
+    out_df = pd.DataFrame(results)
+    out_df.sort_values("trade_time", inplace=True)
+    out_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
+    print(f"Processed {len(results)} timestamps, results saved to {output_csv}")
 
 if __name__ == "__main__":
     image_dir = "data/btc_daily"
@@ -142,15 +186,28 @@ if __name__ == "__main__":
     csv_path = "data/BTC_USDT_1d_with_indicators.csv"
     strategy = "只分析最后一天的K线数据。当价格跌破布林线下轨时买入，当价格升至布林线上轨时卖出，否则持有。"
 
-    asyncio.run(
-        batch_process(
-            image_dir=image_dir,
-            # csv_path=csv_path,
-            output_csv=output_csv,
-            strategy=strategy,
-            window_size=120,
-            use_openrouter=True,
-            start_timestamp="2021-06-30",
-            end_timestamp="2021-12-31",
-        )
+    # 异步批处理
+    # asyncio.run(
+    #     batch_process(
+    #         image_dir=image_dir,
+    #         # csv_path=csv_path,
+    #         output_csv=output_csv,
+    #         strategy=strategy,
+    #         window_size=120,
+    #         use_openrouter=True,
+    #         start_timestamp="2021-06-30",
+    #         end_timestamp="2021-12-31",
+    #     )
+    # )
+
+    # 同步批处理（如需同步执行，取消注释即可）
+    batch_process_sync(
+        image_dir=image_dir,
+        # csv_path=csv_path,
+        output_csv=output_csv,
+        strategy=strategy,
+        window_size=120,
+        use_openrouter=True,
+        start_timestamp="2021-06-30",
+        end_timestamp="2021-12-31",
     )
