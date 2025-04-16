@@ -196,7 +196,34 @@ def visualize_btc_with_indicators(  # noqa: C901
 
     plt.xlabel(x_label)
     if date_column is not None:
-        plt.xticks(rotation=45)
+        # 获取当前xticks并转为list
+        ticks = list(ax1.get_xticks())
+        # 保证首尾日期一定在xticks中
+        first = date_num[0]
+        last = date_num[-1]
+        if first not in ticks:
+            ticks = [first] + ticks
+        if last not in ticks:
+            ticks = ticks + [last]
+        # 只保留在数据范围内的刻度
+        ticks = [t for t in ticks if first <= t <= last]
+        # 设置xticks和对应标签
+        ax1.set_xticks(ticks)
+        labels = [mdates.num2date(t).strftime("%Y-%m-%d") for t in ticks]
+        ax1.set_xticklabels(labels, rotation=45)
+    else:
+        # 非时间索引，强制首尾索引显示
+        ticks = list(ax1.get_xticks())
+        first = x_values.iloc[0]
+        last = x_values.iloc[-1]
+        if first not in ticks:
+            ticks = [first] + ticks
+        if last not in ticks:
+            ticks = ticks + [last]
+        ticks = [t for t in ticks if first <= t <= last]
+        ax1.set_xticks(ticks)
+        labels = [str(int(t)) for t in ticks]
+        ax1.set_xticklabels(labels, rotation=45)
     plt.tight_layout()
 
     # 文件名带上时间区间

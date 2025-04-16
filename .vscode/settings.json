@@ -68,6 +68,7 @@
         "verticalalignment",
         "xaxis",
         "xlabel",
+        "xticklabels",
         "xticks",
         "yfinance",
         "ylabel"

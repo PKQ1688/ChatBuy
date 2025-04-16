@@ -40,10 +40,10 @@ def get_image_paths_by_timestamp(image_dir: str, exts=None):
 
 
 async def batch_process(
-    image_dir: str,
-    csv_path: str,
-    output_csv: str,
-    strategy: str,
+    image_dir: str | None = None,
+    csv_path: str | None = None,
+    output_csv: str = "output/trade_advice_unified_results.csv",
+    strategy: str | None = None,
     use_openrouter: bool = True,
     window_size: int = 30,
     start_timestamp: str = None,
@@ -140,12 +140,12 @@ if __name__ == "__main__":
     image_dir = "data/btc_daily"
     output_csv = "output/trade_advice_unified_results.csv"
     csv_path = "data/BTC_USDT_1d_with_indicators.csv"
-    strategy = "Only analyze the last day's K-line data. Buy when the price falls below the lower Bollinger Band, sell when the price rises above the upper band, otherwise hold."
+    strategy = "只分析最后一天的K线数据。当价格跌破布林线下轨时买入，当价格升至布林线上轨时卖出，否则持有。"
 
     asyncio.run(
         batch_process(
             image_dir=image_dir,
-            csv_path=csv_path,
+            # csv_path=csv_path,
             output_csv=output_csv,
             strategy=strategy,
             window_size=120,

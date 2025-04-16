@@ -32,8 +32,10 @@ class TradePipeline:
         if use_openrouter:
             model = OpenRouter(
                 # id="openai/gpt-4.1",
+                # id="google/gemma-3-27b-it:free",
                 id="google/gemini-2.0-flash-001",
-                # id="deepseek/deepseek-chat-v3-0324:free",
+                # id="google/gemini-2.5-pro-preview-03-25",
+                # id="deepseek/deepseek-chat-v3-0324",
                 # id="openai/gpt-4.1-nano",
             )
         else:
@@ -47,7 +49,14 @@ class TradePipeline:
             model=model,
             response_model=TradeAdvice,
             description="Provide a trading decision based on the strategy I provide.",
+            instructions=[
+                "Note:",
+                "1. Green candles indicate that the closing price is higher than the opening price, red candles indicate that the closing price is lower than the opening price.",
+                "2. The upper shadow of the candle represents the highest price, and the lower shadow represents the lowest price.",
+                "3. The opening and closing prices are the bottom and top of the candle, respectively.",
+            ],
             debug_mode=debug_mode,
+            use_json_mode=True,
         )
 
     def run_pipeline(
@@ -118,12 +127,20 @@ class TradePipeline:
 
 
 if __name__ == "__main__":
+    import pandas as pd
+
+    csv_data = pd.read_csv("data/BTC_USDT_1d_with_indicators.csv")
+
+    csv_data = csv_data[csv_data["timestamp"] >= "2021-07-12"]
+    csv_data = csv_data[csv_data["timestamp"] <= "2021-11-08"]
+
     pipe = TradePipeline(
-        debug_mode=False,
+        debug_mode=True,
         use_openrouter=True,
     )
     res = pipe.run_pipeline(
-        strategy="Buy when the price hits the lower Bollinger Band, sell when it hits the upper band, otherwise hold.",
-        image_path="data/btc_daily/coin_120_20210630_20211027.png",
+        strategy="只分析最后一天的K线数据。当天的收盘价格跌破布林线下轨时买入，当价格升至布林线上轨时卖出，否则持有。",
+        image_path="data/btc_daily/coin_120_20210712_20211108.png",
+        # markdown_text=csv_data.to_markdown(index=False),
     )
     print(res)
