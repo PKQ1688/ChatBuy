@@ -54,6 +54,9 @@ class TradePipeline:
                 "1. Green candles indicate that the closing price is higher than the opening price, red candles indicate that the closing price is lower than the opening price.",
                 "2. The upper shadow of the candle represents the highest price, and the lower shadow represents the lowest price.",
                 "3. The opening and closing prices are the bottom and top of the candle, respectively.",
+                "4. The K-line chart is the top part, the volume is in the middle, and the MACD indicator is at the bottom.",
+                "5. bollinger bands are the upper and lower bands, and the middle band is the average price.",
+                "6. The MACD indicator consists of three lines: the blue line is the MACD line, the orange line is the signal line, and the histogram is the difference between the two lines.",
             ],
             debug_mode=debug_mode,
             use_json_mode=True,
@@ -135,12 +138,37 @@ if __name__ == "__main__":
     csv_data = csv_data[csv_data["timestamp"] <= "2021-11-08"]
 
     pipe = TradePipeline(
-        debug_mode=True,
+        debug_mode=False,
         use_openrouter=True,
     )
-    res = pipe.run_pipeline(
-        strategy="只分析最后一天的K线数据。当天的收盘价格跌破布林线下轨时买入，当价格升至布林线上轨时卖出，否则持有。",
-        image_path="data/btc_daily/coin_120_20210712_20211108.png",
-        # markdown_text=csv_data.to_markdown(index=False),
-    )
-    print(res)
+    image_dir = "data/btc_daily"
+    test_image_name = [
+        "coin_120_20210712_20211108.png",
+        "coin_120_20210713_20211109.png",
+        "coin_120_20210714_20211110.png",
+        "coin_120_20210722_20211118.png",
+        "coin_120_20210726_20211122.png",
+        "coin_120_20210801_20211128.png",
+    ]
+    for i in sorted(os.listdir(image_dir)):
+        if i.endswith(".png"):
+            # if image_path =[image_path]
+            if i not in test_image_name:
+                continue
+
+            image_path = os.path.join(image_dir, i)
+            print(f"Processing image: {image_path}")
+            res = pipe.run_pipeline(
+                strategy="只分析最后一天的K线数据。当天的收盘价格跌破布林线下轨时买入，当价格升至布林线上轨时卖出，否则持有",
+                image_path=image_path,
+                # markdown_text=csv_data.to_markdown(index=False),
+            )
+            print(f"Advice: {res.action}, Reason: {res.reason}")
+            print("=" * 50)
+
+    # res = pipe.run_pipeline(
+    #     strategy="只分析最后一天的K线数据。当天的收盘价格跌破布林线下轨时买入，当价格升至布林线上轨时卖出，否则持有",
+    #     image_path="data/btc_daily/coin_120_20210712_20211108.png",
+    #     # markdown_text=csv_data.to_markdown(index=False),
+    # )
+    # print(res)
