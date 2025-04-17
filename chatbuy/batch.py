@@ -182,7 +182,7 @@ def batch_process_sync(
 
 if __name__ == "__main__":
     image_dir = "data/btc_daily"
-    output_csv = "output/trade_advice_unified_results.csv"
+    output_csv = "output/trade_advice_unified_results_one.csv"
     csv_path = "data/BTC_USDT_1d_with_indicators.csv"
     strategy = "只分析最后一天的K线数据。当价格跌破布林线下轨时买入，当价格升至布林线上轨时卖出，否则持有。"
 
