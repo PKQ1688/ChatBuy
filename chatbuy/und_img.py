@@ -1,4 +1,5 @@
 import os
+from textwrap import dedent
 from typing import Literal
 
 from agno.agent import Agent, RunResponse
@@ -33,8 +34,8 @@ class TradePipeline:
             model = OpenRouter(
                 # id="openai/gpt-4.1",
                 # id="google/gemma-3-27b-it:free",
-                id="google/gemini-2.0-flash-001",
-                # id="google/gemini-2.5-pro-preview-03-25",
+                # id="google/gemini-2.0-flash-001",
+                id="google/gemini-2.5-pro-preview-03-25",
                 # id="deepseek/deepseek-chat-v3-0324",
                 # id="openai/gpt-4.1-nano",
             )
@@ -48,18 +49,25 @@ class TradePipeline:
         self.agent = Agent(
             model=model,
             response_model=TradeAdvice,
-            description="Provide a trading decision based on the strategy I provide.",
+            description=dedent("""\
+                You are a trading assistant. You can analyze K-line charts and provide trading advice.
+                You can only analyze the K-line chart and the strategy provided by the user.
+                You cannot analyze other factors, such as news, market sentiment, or other indicators.
+                You must carefully analyze the provided K-line chart image. 
+                Do not fabricate or assume any information that is not clearly visible in the image. 
+                Only base your advice on what you can actually see in the chart.
+            """),
             instructions=[
                 "Note:",
-                "1. Green candles indicate that the closing price is higher than the opening price, red candles indicate that the closing price is lower than the opening price.",
-                "2. The upper shadow of the candle represents the highest price, and the lower shadow represents the lowest price.",
-                "3. The opening and closing prices are the bottom and top of the candle, respectively.",
-                "4. The K-line chart is the top part, the volume is in the middle, and the MACD indicator is at the bottom.",
-                "5. bollinger bands are the upper and lower bands, and the middle band is the average price.",
-                "6. The MACD indicator consists of three lines: the blue line is the MACD line, the orange line is the signal line, and the histogram is the difference between the two lines.",
+                "1.	Green candles indicate that the closing price is higher than the opening price, while red candles indicate that the closing price is lower than the opening price.",
+                "2.	The upper shadow of the candle represents the highest price during the period, and the lower shadow represents the lowest price.",
+                "3.	The top and bottom of the candle body represent the opening and closing prices, depending on the price movement. For green candles (uptrend), the bottom is the opening price; for red candles (downtrend), the top is the opening price.",
+                "4.	The chart layout consists of the candlestick chart at the top, volume in the middle, and the MACD indicator at the bottom.",
+                "5.	Bollinger Bands consist of an upper band, a lower band, and a middle band, where the middle band represents the average price.",
+                "6.	The MACD indicator is composed of three elements: the blue line is the MACD line, the orange line is the signal line, and the histogram shows the difference between the two lines.",
             ],
             debug_mode=debug_mode,
-            use_json_mode=True,
+            # use_json_mode=True,
         )
 
     def run_pipeline(
@@ -86,6 +94,7 @@ class TradePipeline:
                 "image_path and markdown_text cannot both be empty, at least one must be provided"
             )
         msg = f"Strategy: {strategy}."
+        #
         if markdown_text:
             msg += f"\n\nHere is the recent K-line data in markdown table:\n{markdown_text}"
         images = [Image(filepath=image_path)] if image_path else None
@@ -138,17 +147,17 @@ if __name__ == "__main__":
     csv_data = csv_data[csv_data["timestamp"] <= "2021-11-08"]
 
     pipe = TradePipeline(
-        debug_mode=False,
+        debug_mode=True,
         use_openrouter=True,
     )
     image_dir = "data/btc_daily"
     test_image_name = [
         "coin_120_20210712_20211108.png",
-        "coin_120_20210713_20211109.png",
-        "coin_120_20210714_20211110.png",
-        "coin_120_20210722_20211118.png",
-        "coin_120_20210726_20211122.png",
-        "coin_120_20210801_20211128.png",
+        # "coin_120_20210713_20211109.png",
+        # "coin_120_20210714_20211110.png",
+        # "coin_120_20210722_20211118.png",
+        # "coin_120_20210726_20211122.png",
+        # "coin_120_20210801_20211128.png",
     ]
     for i in sorted(os.listdir(image_dir)):
         if i.endswith(".png"):
