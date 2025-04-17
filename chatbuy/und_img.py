@@ -32,12 +32,13 @@ class TradePipeline:
     ):
         if use_openrouter:
             model = OpenRouter(
-                # id="openai/gpt-4.1",
+                id="openai/gpt-4.1",
                 # id="google/gemma-3-27b-it:free",
                 # id="google/gemini-2.0-flash-001",
-                id="google/gemini-2.5-pro-preview-03-25",
+                # id="google/gemini-2.5-pro-preview-03-25",
                 # id="deepseek/deepseek-chat-v3-0324",
                 # id="openai/gpt-4.1-nano",
+                temperature=0.1,
             )
         else:
             model = OpenAILike(
@@ -147,17 +148,17 @@ if __name__ == "__main__":
     csv_data = csv_data[csv_data["timestamp"] <= "2021-11-08"]
 
     pipe = TradePipeline(
-        debug_mode=True,
+        debug_mode=False,
         use_openrouter=True,
     )
     image_dir = "data/btc_daily"
     test_image_name = [
         "coin_120_20210712_20211108.png",
-        # "coin_120_20210713_20211109.png",
-        # "coin_120_20210714_20211110.png",
-        # "coin_120_20210722_20211118.png",
-        # "coin_120_20210726_20211122.png",
-        # "coin_120_20210801_20211128.png",
+        "coin_120_20210713_20211109.png",
+        "coin_120_20210714_20211110.png",
+        "coin_120_20210722_20211118.png",
+        "coin_120_20210726_20211122.png",
+        "coin_120_20210801_20211128.png",
     ]
     for i in sorted(os.listdir(image_dir)):
         if i.endswith(".png"):
