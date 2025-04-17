@@ -194,7 +194,7 @@ if __name__ == "__main__":
     #         output_csv=output_csv,
     #         strategy=strategy,
     #         window_size=120,
-    #         use_openrouter=True,
+    #         use_openrouter=False,
     #         start_timestamp="2021-06-30",
     #         end_timestamp="2021-12-31",
     #     )
@@ -207,7 +207,7 @@ if __name__ == "__main__":
         output_csv=output_csv,
         strategy=strategy,
         window_size=120,
-        use_openrouter=True,
+        use_openrouter=False,
         start_timestamp="2021-06-30",
         end_timestamp="2021-12-31",
     )

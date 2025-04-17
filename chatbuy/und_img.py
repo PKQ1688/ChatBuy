@@ -4,7 +4,9 @@ from typing import Literal
 
 from agno.agent import Agent, RunResponse
 from agno.media import Image
-from agno.models.openai.like import OpenAILike
+
+# from agno.models.openai.like import OpenAILike
+from agno.models.azure import AzureOpenAI
 from agno.models.openrouter import OpenRouter
 from pydantic import BaseModel
 
@@ -32,20 +34,23 @@ class TradePipeline:
     ):
         if use_openrouter:
             model = OpenRouter(
-                id="openai/gpt-4.1",
+                # id="openai/gpt-4.1",
+                # id="openai/o4-mini",
+                id="openai/o3",
                 # id="google/gemma-3-27b-it:free",
                 # id="google/gemini-2.0-flash-001",
                 # id="google/gemini-2.5-pro-preview-03-25",
                 # id="deepseek/deepseek-chat-v3-0324",
                 # id="openai/gpt-4.1-nano",
-                temperature=0.1,
+                # temperature=0.1,
             )
         else:
-            model = OpenAILike(
-                id="deepseek-ai/DeepSeek-V3-0324",
-                base_url="https://router.huggingface.co/hyperbolic/v1",
-                api_key=os.environ["HF_TOKEN"],
-            )
+            # model = OpenAILike(
+            #     id="deepseek-ai/DeepSeek-V3-0324",
+            #     base_url="https://router.huggingface.co/hyperbolic/v1",
+            #     api_key=os.environ["HF_TOKEN"],
+            # )
+            model = AzureOpenAI(id="gpt-4o-1120")
 
         self.agent = Agent(
             model=model,
@@ -149,7 +154,7 @@ if __name__ == "__main__":
 
     pipe = TradePipeline(
         debug_mode=False,
-        use_openrouter=True,
+        use_openrouter=False,
     )
     image_dir = "data/btc_daily"
     test_image_name = [
