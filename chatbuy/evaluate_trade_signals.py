@@ -46,4 +46,6 @@ print(f"胜率: {win_rate:.2%}")
 print(f"平均单笔收益: {avg_profit:.2f}")
 print("每笔交易明细:")
 for d in trade_dates:
-    print(d)
+    # 转换为普通float，避免np.float64显示
+    ts, act, price = d
+    print((ts, act, float(price)))
