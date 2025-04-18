@@ -51,7 +51,7 @@ class TradePipeline:
             #     base_url="https://router.huggingface.co/hyperbolic/v1",
             #     api_key=os.environ["HF_TOKEN"],
             # )
-            model = AzureOpenAI(id="gpt-4o-1120")
+            model = AzureOpenAI(id="gpt-4o-1120", temperature=0.1)
 
         self.agent = Agent(
             model=model,
@@ -159,12 +159,12 @@ if __name__ == "__main__":
     )
     image_dir = "data/btc_daily"
     test_image_name = [
-        "coin_120_20210712_20211108.png",
-        "coin_120_20210713_20211109.png",
+        # "coin_120_20210712_20211108.png",
+        # "coin_120_20210713_20211109.png",
         "coin_120_20210714_20211110.png",
-        "coin_120_20210722_20211118.png",
-        "coin_120_20210726_20211122.png",
-        "coin_120_20210801_20211128.png",
+        # "coin_120_20210722_20211118.png",
+        # "coin_120_20210726_20211122.png",
+        # "coin_120_20210801_20211128.png",
     ]
     for i in sorted(os.listdir(image_dir)):
         if i.endswith(".png"):
@@ -175,7 +175,7 @@ if __name__ == "__main__":
             image_path = os.path.join(image_dir, i)
             print(f"Processing image: {image_path}")
             res = pipe.run_pipeline(
-                strategy="只分析最后一天的K线数据。当天的收盘价格跌破布林线下轨时买入，当价格升至布林线上轨时卖出，否则持有",
+                strategy="只分析最后一天的K线数据。当天的收盘价格跌破布林线下轨时买入，当价格升至布林线上轨时卖出，否则持有。",
                 image_path=image_path,
                 # markdown_text=csv_data.to_markdown(index=False),
             )
