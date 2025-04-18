@@ -81,6 +81,7 @@ def _prepare_batch_data(
 
     return all_timestamps, img_map, md_windows
 
+
 async def batch_process(
     image_dir: str | None = None,
     csv_path: str | None = None,
@@ -122,6 +123,7 @@ async def batch_process(
             tasks.append(process_one(ts, img_path, md_window))
 
     with tqdm(total=len(tasks), desc="Processing unified batch") as pbar:
+
         async def process_with_progress(task):
             result = await task
             pbar.update(1)
@@ -153,7 +155,9 @@ def batch_process_sync(
     )
 
     results = []
-    with tqdm(total=len(all_timestamps), desc="Processing unified batch (sync)") as pbar:
+    with tqdm(
+        total=len(all_timestamps), desc="Processing unified batch (sync)"
+    ) as pbar:
         for ts in all_timestamps:
             img_path = img_map.get(ts)
             md_window = md_windows.get(ts)
@@ -168,11 +172,13 @@ def batch_process_sync(
                 )
                 action = str(advice.action)
                 reason = str(advice.reason)
-                results.append({
-                    "trade_time": ts,
-                    "action": action,
-                    "reason": reason,
-                })
+                results.append(
+                    {
+                        "trade_time": ts,
+                        "action": action,
+                        "reason": reason,
+                    }
+                )
             pbar.update(1)
 
     out_df = pd.DataFrame(results)
@@ -180,11 +186,13 @@ def batch_process_sync(
     out_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
     print(f"Processed {len(results)} timestamps, results saved to {output_csv}")
 
+
 if __name__ == "__main__":
     image_dir = "data/btc_daily"
     output_csv = "output/trade_advice_unified_results_one.csv"
     csv_path = "data/BTC_USDT_1d_with_indicators.csv"
-    strategy = "只分析最后一天的K线数据。当价格跌破布林线下轨时买入，当价格升至布林线上轨时卖出，否则持有。"
+    # strategy = "只分析最后一天的K线数据。当价格跌破布林线下轨时买入，当价格升至布林线上轨时卖出，否则持有"
+    strategy = "只分析最后一天的K线数据。当天的收盘价格跌破布林线下轨时买入，当收盘价格超过布林线上轨时卖出，否则持有"
 
     # 异步批处理
     # asyncio.run(
