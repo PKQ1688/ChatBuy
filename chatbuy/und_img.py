@@ -36,7 +36,8 @@ class TradePipeline:
             model = OpenRouter(
                 # id="openai/gpt-4.1",
                 # id="openai/o4-mini",
-                id="openai/o3",
+                # id="openai/o3",
+                id="google/gemini-2.5-flash-preview"
                 # id="google/gemma-3-27b-it:free",
                 # id="google/gemini-2.0-flash-001",
                 # id="google/gemini-2.5-pro-preview-03-25",
@@ -154,7 +155,7 @@ if __name__ == "__main__":
 
     pipe = TradePipeline(
         debug_mode=False,
-        use_openrouter=False,
+        use_openrouter=True,
     )
     image_dir = "data/btc_daily"
     test_image_name = [
