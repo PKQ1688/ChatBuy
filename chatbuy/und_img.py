@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
     pipe = TradePipeline(
         debug_mode=False,
-        use_openrouter=True,
+        use_openrouter=False,
     )
     image_dir = "data/btc_daily"
     test_image_name = [
