@@ -1,67 +1,67 @@
 ﻿trade_time,action,reason
-2021-10-27,hold,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价位于布林线中轨和上轨之间，未突破布林线上轨，也未跌破布林线下轨，因此应选择持有。
-2021-10-28,hold,根据最后一天的K线数据，价格既没有跌破布林线下轨，也没有升至布林线上轨，因此按照策略应选择持有。
-2021-10-29,buy,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价已经跌破布林线下轨，符合“当价格跌破布林线下轨时买入”的条件，因此建议买入。
-2021-10-30,hold,根据最后一天的K线数据，价格既没有跌破布林线下轨，也没有升至布林线上轨，因此当前策略应为持有。
-2021-10-31,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此不满足买入或卖出条件，建议持有。
-2021-11-01,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此应选择持有。
-2021-11-02,hold,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价位于布林线中轨和上轨之间，未突破上轨，也未跌破下轨。因此，当前应持有仓位，不进行买入或卖出操作。
-2021-11-03,hold,根据最后一天的K线数据，价格既没有跌破布林线下轨，也没有升至布林线上轨，因此按照策略应选择持有。
-2021-11-04,hold,根据策略，只分析最后一天的K线数据。最后一天的价格既没有跌破布林线下轨，也没有升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-11-05,hold,根据策略，只分析最后一天的K线数据。最后一天的K线价格既没有跌破布林线下轨，也没有升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-11-06,hold,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价位于布林线下轨和上轨之间，未跌破下轨，也未升至上轨。因此，当前应持有，等待价格触及布林线上轨或下轨再做操作。
-2021-11-07,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未突破布林线上轨或下轨，价格位于布林线中轨和上轨之间，因此当前应持有，不进行买入或卖出操作。
-2021-11-08,hold,根据策略，只分析最后一天的K线数据。最后一天的价格既没有跌破布林线下轨，也没有升至布林线上轨，因此应选择持有。
-2021-11-09,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此应选择持有。
-2021-11-10,hold,根据策略，只分析最后一天的K线数据。最后一天的K线价格既没有跌破布林线下轨，也没有升至布林线上轨，因此当前应持有仓位，不进行买入或卖出操作。
-2021-11-11,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-11-12,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-11-13,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未突破布林线上轨或下轨，价格位于布林线中轨和上轨之间，因此当前应持有，不进行买入或卖出操作。
-2021-11-14,buy,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价已经跌破布林线下轨，符合“当价格跌破布林线下轨时买入”的条件，因此建议买入。
-2021-11-15,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未突破布林线上轨或下轨，价格位于布林线中轨和上轨之间，因此当前应持有，不进行买入或卖出操作。
-2021-11-16,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未突破布林线上轨或下轨，价格位于布林线中轨和上轨之间，因此当前应持有，不进行买入或卖出操作。
-2021-11-17,buy,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价已经跌破布林线下轨，符合“当价格跌破布林线下轨时买入”的条件，因此建议买入。
-2021-11-18,hold,根据策略，只分析最后一天的K线数据。最后一天的价格既没有跌破布林线下轨，也没有升至布林线上轨，因此应选择持有。
-2021-11-19,hold,根据策略，只分析最后一天的K线数据。最后一天的K线价格既没有跌破布林线下轨，也没有升至布林线上轨，因此当前应持有仓位，不进行买入或卖出操作。
-2021-11-20,hold,根据最后一天的K线数据，价格并未跌破布林线下轨，也未升至布林线上轨，因此按照策略应选择持有。
-2021-11-21,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-11-22,hold,根据策略，只分析最后一天的K线数据。最后一天的价格既没有跌破布林线下轨，也没有升至布林线上轨，因此应选择持有。
-2021-11-23,hold,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价位于布林线中轨和上轨之间，未突破布林线上轨，也未跌破布林线下轨，因此应选择持有。
-2021-11-24,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未突破布林线上轨或下轨，价格位于布林线中轨和上轨之间，因此当前应持有，不进行买入或卖出操作。
-2021-11-25,hold,根据策略，只分析最后一天的K线数据。最后一天的K线价格既没有跌破布林线下轨，也没有升至布林线上轨，因此当前应选择持有。
-2021-11-26,hold,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价位于布林线中轨和上轨之间，未突破上轨，也未跌破下轨。因此，当前应持有仓位，不进行买入或卖出操作。
-2021-11-27,hold,根据策略，只分析最后一天的K线数据。最后一天的K线价格既没有跌破布林线下轨，也没有升至布林线上轨，因此当前应持有仓位，不进行买入或卖出操作。
-2021-11-28,hold,根据最后一天的K线数据，价格既没有跌破布林线下轨，也没有升至布林线上轨，因此按照策略应选择持有。
-2021-11-29,hold,根据最后一天的K线数据，价格处于布林带下轨和上轨之间，未跌破下轨也未升至上轨，因此按照策略应选择持有。
-2021-11-30,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未突破布林线上轨或下轨，价格位于布林线中轨和上轨之间，因此当前应持有，不进行买入或卖出操作。
-2021-12-01,buy,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价已经跌破布林线下轨，符合“当价格跌破布林线下轨时买入”的条件，因此建议买入。
-2021-12-02,buy,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价已经跌破布林线下轨，符合“当价格跌破布林线下轨时买入”的条件，因此建议买入。
-2021-12-03,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-12-04,hold,根据策略，只分析最后一天的K线数据。最后一天的价格既没有跌破布林线下轨，也没有升至布林线上轨，因此应选择持有。
-2021-12-05,buy,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价已经跌破布林线下轨，符合“当价格跌破布林线下轨时买入”的条件，因此建议买入。
-2021-12-06,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-12-07,hold,根据最后一天的K线数据，价格并未跌破布林线下轨，也未升至布林线上轨，因此按照策略应选择持有。
-2021-12-08,hold,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价位于布林线中轨和上轨之间，未突破上轨，也未跌破下轨。因此，当前应持有仓位，不进行买入或卖出操作。
-2021-12-09,hold,根据策略，只分析最后一天的K线数据。最后一天的价格既没有跌破布林线下轨，也没有升至布林线上轨，因此应选择持有。
-2021-12-10,hold,根据策略，只分析最后一天的K线数据。最后一天的价格既没有跌破布林线下轨，也没有升至布林线上轨，因此应选择持有。
-2021-12-11,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-12-12,hold,根据策略，只分析最后一天的K线数据。最后一天的价格既没有跌破布林线下轨，也没有升至布林线上轨，因此应选择持有。
-2021-12-13,hold,根据最后一天的K线数据，价格并未跌破布林线下轨，也未升至布林线上轨，因此按照策略应选择持有。
-2021-12-14,hold,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价位于布林线中轨和上轨之间，未突破上轨，也未跌破下轨。因此，当前应持有仓位，不进行买入或卖出操作。
-2021-12-15,hold,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价位于布林线中轨和下轨之间，并未跌破下轨，也未升至上轨。因此，当前应持有，等待价格触及布林线上轨或下轨再做操作。
-2021-12-16,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未突破布林线上轨或下轨，价格位于布林线中轨和上轨之间，因此当前应持有，不进行买入或卖出操作。
-2021-12-17,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此应选择持有。
-2021-12-18,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-12-19,hold,根据策略，只分析最后一天的K线数据。最后一天的K线价格既没有跌破布林线下轨，也没有升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-12-20,hold,根据最后一天的K线数据，价格既没有跌破布林线下轨，也没有升至布林线上轨，因此当前策略应为持有。
-2021-12-21,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此应选择持有。
-2021-12-22,buy,根据策略，只分析最后一天的K线数据。最后一天的K线收盘价已经跌破布林线下轨，符合“当价格跌破布林线下轨时买入”的条件，因此建议买入。
-2021-12-23,hold,根据策略，只分析最后一天的K线数据。最后一天的价格既没有跌破布林线下轨，也没有升至布林线上轨，因此应选择持有。
-2021-12-24,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未突破布林线上轨或下轨，价格位于布林线中轨和上轨之间，因此当前应持有，不进行买入或卖出操作。
-2021-12-25,hold,根据策略，只分析最后一天的K线数据。最后一天的价格既没有跌破布林线下轨，也没有升至布林线上轨，因此应选择持有。
-2021-12-26,hold,根据策略，只分析最后一天的K线数据。最后一天的价格既没有跌破布林线下轨，也没有升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-12-27,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-12-28,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-12-29,hold,根据策略，只分析最后一天的K线数据。最后一天的价格既没有跌破布林线下轨，也没有升至布林线上轨，因此应选择持有。
-2021-12-30,hold,根据策略，只分析最后一天的K线数据。最后一天的价格并未跌破布林线下轨，也未升至布林线上轨，因此不满足买入或卖出的条件，建议持有。
-2021-12-31,hold,根据最后一天的K线数据，价格既没有跌破布林线下轨，也没有升至布林线上轨，因此按照策略应选择持有。
+2021-10-27,sell,"The closing price of the last day exceeds the upper Bollinger Band, indicating a sell signal according to the strategy."
+2021-10-28,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-10-29,sell,"The closing price of the last day exceeds the upper Bollinger Band, indicating a sell signal according to the strategy."
+2021-10-30,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-10-31,hold,"The closing price of the last day is within the Bollinger Bands, so no action is taken according to the strategy."
+2021-11-01,hold,"The closing price of the last day is within the Bollinger Bands, neither exceeding the upper band nor falling below the lower band."
+2021-11-02,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-11-03,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-11-04,hold,"The closing price of the last day is within the Bollinger Bands, neither exceeding the upper band nor falling below the lower band."
+2021-11-05,buy,"The closing price of the last day is below the lower Bollinger Band, indicating a buy signal according to the strategy."
+2021-11-06,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-11-07,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-11-08,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-11-09,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-11-10,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-11-11,hold,"The closing price of the last day is within the Bollinger Bands, so no action is taken according to the strategy."
+2021-11-12,hold,"The closing price of the last day is within the Bollinger Bands, so no action is taken according to the strategy."
+2021-11-13,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-11-14,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-11-15,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-11-16,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-11-17,hold,"The closing price of the last day is within the Bollinger Bands, so no action is taken according to the strategy."
+2021-11-18,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-11-19,buy,"The closing price of the last day is below the lower Bollinger Band, indicating a buy signal according to the strategy."
+2021-11-20,hold,"The last day's closing price is within the Bollinger Bands, so no action is required according to the strategy."
+2021-11-21,hold,"The last day's closing price is within the Bollinger Bands, so no action is required according to the strategy."
+2021-11-22,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-11-23,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-11-24,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-11-25,sell,"The closing price of the last day exceeds the upper Bollinger Band, indicating a sell signal according to the strategy."
+2021-11-26,buy,"The closing price of the last day is below the lower Bollinger Band, indicating a buy signal according to the strategy."
+2021-11-27,hold,"The closing price of the last day is within the Bollinger Bands, so no action is taken according to the strategy."
+2021-11-28,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-11-29,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-11-30,hold,"The closing price of the last day is within the Bollinger Bands, so no action is taken according to the strategy."
+2021-12-01,hold,"The last day's closing price is within the Bollinger Bands, so no action is required according to the strategy."
+2021-12-02,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-12-03,hold,"The closing price of the last day is within the Bollinger Bands, so no action is taken according to the strategy."
+2021-12-04,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-12-05,hold,"The closing price of the last day is within the Bollinger Bands, neither exceeding the upper band nor falling below the lower band."
+2021-12-06,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-12-07,hold,"The last day's closing price is within the Bollinger Bands, so no action is required according to the strategy."
+2021-12-08,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-12-09,hold,"The last day's closing price is within the Bollinger Bands, so no action is required according to the strategy."
+2021-12-10,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-12-11,hold,"The closing price of the last day is within the Bollinger Bands, neither exceeding the upper band nor falling below the lower band."
+2021-12-12,hold,"The closing price of the last day is within the Bollinger Bands, neither exceeding the upper band nor falling below the lower band."
+2021-12-13,buy,"The closing price of the last day is below the lower Bollinger Band, indicating a buy signal according to the strategy."
+2021-12-14,sell,"The closing price of the last day exceeds the upper Bollinger Band, indicating a sell signal according to the strategy."
+2021-12-15,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-12-16,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-12-17,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-12-18,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-12-19,hold,"The closing price of the last day is within the Bollinger Bands, neither exceeding the upper band nor falling below the lower band."
+2021-12-20,hold,"The closing price of the last day is within the Bollinger Bands, so no action is taken according to the strategy."
+2021-12-21,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-12-22,hold,"The closing price of the last day is within the Bollinger Bands, so no action is taken according to the strategy."
+2021-12-23,hold,"The closing price of the last day is within the Bollinger Bands, so no action is required according to the strategy."
+2021-12-24,sell,"The closing price of the last day exceeds the upper Bollinger Band, indicating a sell signal according to the strategy."
+2021-12-25,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-12-26,sell,"The closing price of the last candle exceeds the upper Bollinger Band, indicating a sell signal according to the strategy."
+2021-12-27,sell,"The closing price of the last day exceeds the upper Bollinger Band, indicating a sell signal according to the strategy."
+2021-12-28,hold,"The closing price of the last day is within the Bollinger Bands, so no action is taken according to the strategy."
+2021-12-29,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-12-30,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
+2021-12-31,hold,"The closing price of the last day is within the Bollinger Bands, neither below the lower band nor above the upper band."
