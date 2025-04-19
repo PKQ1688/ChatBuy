@@ -5,7 +5,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-from chatbuy.und_img import TradePipeline
+from chatbuy.core.und_img import TradePipeline
 
 
 def get_image_paths(image_dir: str, exts=None):
