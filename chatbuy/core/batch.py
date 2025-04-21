@@ -115,21 +115,39 @@ async def batch_process(
         md_text = None
         if md_window is not None:
             md_text = md_window.to_markdown(index=False)
-        try:
-            advice = await pipeline.a_run_pipeline(
-                strategy=strategy,
-                image_path=img_path,
-                markdown_text=md_text,
-            )
-            if advice is None:
-                # Log the issue or handle it - for now, return an error indicator
-                print(f"Warning: Received None advice for timestamp {ts}")
-                return {
-                    "trade_time": ts,
-                    "action": "error",
-                    "reason": "Failed to get advice (None returned)",
-                }
+        
+        max_retries = 3
+        retry_delay = 2 # seconds
+        advice = None # Initialize advice to None
+
+        for attempt in range(max_retries):
+            try:
+                advice = await pipeline.a_run_pipeline(
+                    strategy=strategy,
+                    image_path=img_path,
+                    markdown_text=md_text,
+                )
+                if advice is not None:
+                    # Successfully got advice, break the retry loop
+                    break
+                else:
+                    # Received None, log and prepare for retry
+                    print(f"Warning: Received None advice for timestamp {ts} on attempt {attempt + 1}/{max_retries}. Retrying after {retry_delay}s...")
+                    
+            except Exception as e:
+                # Catch potential exceptions during the pipeline run
+                print(f"Error processing timestamp {ts} on attempt {attempt + 1}/{max_retries}: {e}. Retrying after {retry_delay}s...")
             
+            # If not the last attempt, wait before retrying
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay)
+            else:
+                 # Last attempt failed
+                 print(f"Error: Failed to get advice for timestamp {ts} after {max_retries} attempts.")
+
+
+        # After the loop, check if advice was successfully obtained
+        if advice is not None:
             action = str(advice.action)
             reason = str(advice.reason)
             return {
@@ -137,13 +155,12 @@ async def batch_process(
                 "action": action,
                 "reason": reason,
             }
-        except Exception as e:
-            # Catch any other potential exceptions during the pipeline run
-            print(f"Error processing timestamp {ts}: {e}")
+        else:
+            # All retries failed
             return {
                 "trade_time": ts,
                 "action": "error",
-                "reason": f"Exception: {e}",
+                "reason": f"Failed after {max_retries} attempts",
             }
 
     tasks = []
@@ -158,7 +175,7 @@ async def batch_process(
 
     results = []
     # 使用 asyncio.Semaphore 来限制并发数量，防止外部服务过载
-    concurrency_limit = 5 # 设置并发限制为 5
+    concurrency_limit = 10 # Set for validation run
     semaphore = asyncio.Semaphore(concurrency_limit)
 
     async def process_with_progress_and_limit(task): # Use this function
