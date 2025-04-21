@@ -1,17 +1,20 @@
-import streamlit as st
-st.set_page_config(layout="wide")
-import pandas as pd
 import os
+
+import pandas as pd
+import streamlit as st
+
+st.set_page_config(layout="wide")
+
 
 # --- 导入 Pipeline ---
 try:
     from chatbuy.core.pipeline import TradingAnalysisPipeline
 except ImportError as e:
     st.error(f"无法导入 TradingAnalysisPipeline: {e}")
-    st.stop() # 如果核心 Pipeline 无法导入，则停止应用
+    st.stop()  # 如果核心 Pipeline 无法导入，则停止应用
 
 # --- 初始化 Pipeline (确保只执行一次) ---
-if 'pipeline' not in st.session_state:
+if "pipeline" not in st.session_state:
     st.session_state.pipeline = TradingAnalysisPipeline()
 
 pipeline = st.session_state.pipeline
@@ -21,24 +24,24 @@ st.title("交易策略分析流程 (Pipeline 版)")
 
 # --- 状态管理 ---
 # 使用 session_state 在页面刷新和步骤间传递数据
-if 'data_fetched' not in st.session_state:
+if "data_fetched" not in st.session_state:
     st.session_state.data_fetched = False
-if 'image_generated' not in st.session_state:
+if "image_generated" not in st.session_state:
     st.session_state.image_generated = False
-if 'analysis_done' not in st.session_state:
+if "analysis_done" not in st.session_state:
     st.session_state.analysis_done = False
-if 'report_generated' not in st.session_state:
+if "report_generated" not in st.session_state:
     st.session_state.report_generated = False
 
 # 存储中间结果
-if 'data_result' not in st.session_state:
-    st.session_state.data_result = None # 可以是 DataFrame 或文件路径
-if 'image_path' not in st.session_state:
+if "data_result" not in st.session_state:
+    st.session_state.data_result = None  # 可以是 DataFrame 或文件路径
+if "image_path" not in st.session_state:
     st.session_state.image_path = None
-if 'analysis_result' not in st.session_state:
-    st.session_state.analysis_result = None # 可以是 DataFrame 或文件路径
-if 'report_content' not in st.session_state:
-    st.session_state.report_content = None # 可以是报告文本或文件路径
+if "analysis_result" not in st.session_state:
+    st.session_state.analysis_result = None  # 可以是 DataFrame 或文件路径
+if "report_content" not in st.session_state:
+    st.session_state.report_content = None  # 可以是报告文本或文件路径
 
 
 # --- 步骤一：获取K线数据 ---
@@ -74,7 +77,7 @@ if fetch_button:
             except Exception as e:
                 st.warning(f"尝试读取数据显示预览失败: {e}")
         else:
-             st.info(f"函数返回: {result}")
+            st.info(f"函数返回: {result}")
     else:
         st.session_state.data_fetched = False
         fetch_output_area.error(f"数据获取失败：\n{pipeline_result['error']}")
@@ -84,8 +87,9 @@ if fetch_button:
 st.header("第二步：生成K线图片")
 col3, col4 = st.columns([1, 3])
 with col3:
-    generate_image_button = st.button("生成图片", key="generate",
-                                      disabled=(not st.session_state.data_fetched))
+    generate_image_button = st.button(
+        "生成图片", key="generate", disabled=(not st.session_state.data_fetched)
+    )
 with col4:
     image_output_area = st.empty()
     if not st.session_state.data_fetched:
@@ -111,8 +115,9 @@ if generate_image_button and st.session_state.data_fetched:
 st.header("第三步：AI分析买卖点")
 col5, col6 = st.columns([1, 3])
 with col5:
-    analyze_button = st.button("AI分析", key="analyze",
-                               disabled=(not st.session_state.image_generated))
+    analyze_button = st.button(
+        "AI分析", key="analyze", disabled=(not st.session_state.image_generated)
+    )
 with col6:
     analyze_output_area = st.empty()
     if not st.session_state.image_generated:
@@ -135,7 +140,7 @@ if analyze_button and st.session_state.image_generated:
             # 修正：显示 TradeAdvice 对象的内容
             trade_advice = pipeline_result["result"]
             # 假设 trade_advice 是 und_img.TradeAdvice 的实例或类似结构
-            if hasattr(trade_advice, 'action') and hasattr(trade_advice, 'reason'):
+            if hasattr(trade_advice, "action") and hasattr(trade_advice, "reason"):
                 st.metric("建议操作", trade_advice.action.upper())
                 st.info(f"原因: {trade_advice.reason}")
             else:
@@ -153,8 +158,9 @@ st.header("第四步：生成评估报告")
 col7, col8 = st.columns([1, 3])
 with col7:
     # 修正：按钮依赖于第一步数据获取完成
-    report_button = st.button("生成评估报告", key="report",
-                              disabled=(not st.session_state.data_fetched))
+    report_button = st.button(
+        "生成评估报告", key="report", disabled=(not st.session_state.data_fetched)
+    )
 with col8:
     report_output_area = st.empty()
     # 修正：提示依赖于第一步
@@ -174,7 +180,7 @@ if report_button and st.session_state.data_fetched:
         if pipeline_result["success"]:
             # 修正：返回的是包含评估结果的字典
             evaluation_data = pipeline_result["report"]
-            st.session_state.report_content = evaluation_data # 存储评估结果字典
+            st.session_state.report_content = evaluation_data  # 存储评估结果字典
             st.session_state.report_generated = True
             report_output_area.success("评估报告生成成功！")
 
@@ -189,7 +195,7 @@ if report_button and st.session_state.data_fetched:
             st.subheader("交易明细")
             trade_details_df = pd.DataFrame(
                 evaluation_data.get("trade_details", []),
-                columns=["Timestamp", "Action", "Price"]
+                columns=["Timestamp", "Action", "Price"],
             )
             st.dataframe(trade_details_df)
 
@@ -197,9 +203,11 @@ if report_button and st.session_state.data_fetched:
             st.session_state.report_generated = False
             report_output_area.error(f"评估报告生成失败：\n{pipeline_result['error']}")
     else:
-         # 如果第一步的结果不是 DataFrame (例如是文件路径)，则无法执行评估
-         st.session_state.report_generated = False
-         report_output_area.error("错误：无法执行评估，因为第一步获取的数据不是 DataFrame。")
+        # 如果第一步的结果不是 DataFrame (例如是文件路径)，则无法执行评估
+        st.session_state.report_generated = False
+        report_output_area.error(
+            "错误：无法执行评估，因为第一步获取的数据不是 DataFrame。"
+        )
 
 
 # --- 结束语 ---
