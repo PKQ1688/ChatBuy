@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "agno",
+        "aiohttp",
         "arun",
         "backtesting",
         "Bollinger",
@@ -41,6 +42,7 @@
         "MIPRO",
         "mplfinance",
         "Multicrypto",
+        "nbins",
         "ndarray",
         "nebius",
         "nrows",
@@ -58,9 +60,11 @@
         "rowspan",
         "sambanova",
         "Senkou",
+        "setp",
         "sharex",
         "smol",
         "smolagents",
+        "streamlit",
         "talipp",
         "Tenkan",
         "timeframes",

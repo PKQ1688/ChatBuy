@@ -18,6 +18,7 @@ dependencies = [
   "mplfinance>=0.12.10b0",
   "openai>=1.73.0",
   "python-dotenv>=1.0.1",
+  "streamlit>=1.44.1",
   "tabulate>=0.9.0",
   "talipp>=2.4.1",
 ]
@@ -68,6 +69,7 @@ ignore = [
   "D104", # ignore missing docstring in public package
   "D105", # ignore missing docstring in magic methods
   "D107" # ignore missing docstring in __init__ methods
+  "C901", # ignore too many imports
 ]
 
 [tool.ruff.lint.pydocstyle]
