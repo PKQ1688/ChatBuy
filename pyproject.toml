@@ -68,8 +68,8 @@ ignore = [
   "D102", # ignore missing docstring in public method
   "D104", # ignore missing docstring in public package
   "D105", # ignore missing docstring in magic methods
-  "D107" # ignore missing docstring in __init__ methods
-  "C901", # ignore too many imports
+  "D107", # ignore missing docstring in __init__ methods
+  "C901" # ignore too many imports
 ]
 
 [tool.ruff.lint.pydocstyle]
