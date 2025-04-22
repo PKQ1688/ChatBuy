@@ -1,6 +1,7 @@
 import os
-import pandas as pd
+
 import gradio as gr
+import pandas as pd
 
 # --- 导入 Pipeline ---
 try:
@@ -21,8 +22,7 @@ else:
 
 
 def create_gradio_app():
-    """创建 Gradio 应用界面和逻辑"""
-
+    """创建 Gradio 应用界面和逻辑."""
     if pipeline is None:
         with gr.Blocks() as app:
             gr.Markdown("# 交易策略分析流程 (Pipeline 版)")
