@@ -13,10 +13,7 @@ dependencies = [
   "aiohttp>=3.10.11",
   "azure-ai-inference>=1.0.0b9",
   "ccxt>=4.4.65",
-<<<<<<< HEAD
-=======
   "gradio>=5.25.2",
->>>>>>> 62ba0cab244184c3a94aa293bc4d70fd2b9fd246
   "httpx[socks]>=0.28.1",
   "matplotlib>=3.10.1",
   "mplfinance>=0.12.10b0",
