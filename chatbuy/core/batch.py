@@ -235,13 +235,32 @@ def batch_process_sync(
                 md_text = None
                 if md_window is not None:
                     md_text = md_window.to_markdown(index=False)
-                advice = pipeline.run_pipeline(
-                    strategy=strategy,
-                    image_path=img_path,
-                    markdown_text=md_text,
-                )
-                action = str(advice.action)
-                reason = str(advice.reason)
+                action = "error" # Default in case of failure
+                reason = "Failed to process"
+                try:
+                    advice = pipeline.run_pipeline(
+                        strategy=strategy,
+                        image_path=img_path,
+                        markdown_text=md_text,
+                    )
+                    # Check if advice is the expected type (assuming TradeAdvice is the class)
+                    # Need to import TradeAdvice or use isinstance check carefully
+                    # For simplicity, check if it has 'action' and 'reason' attributes
+                    if hasattr(advice, 'action') and hasattr(advice, 'reason'):
+                        action = str(advice.action)
+                        reason = str(advice.reason)
+                    elif advice is None:
+                         print(f"Warning: Sync run received None advice for timestamp {ts}")
+                         reason = "Sync run returned None"
+                    else:
+                         # It's something else (like the string that caused the error)
+                         print(f"Warning: Sync run received unexpected type for timestamp {ts}: {type(advice)}")
+                         reason = f"Sync run returned unexpected type: {type(advice)}"
+
+                except Exception as e:
+                    print(f"Error during sync processing for timestamp {ts}: {e}")
+                    reason = f"Sync Exception: {e}"
+
                 results.append(
                     {
                         "trade_time": ts,
