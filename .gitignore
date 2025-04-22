@@ -25,3 +25,4 @@ logs/
 .gradio/
 
 .DS_Store
+.roo/
