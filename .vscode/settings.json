@@ -81,6 +81,11 @@
     "cSpell.ignorePaths": [
         ".venv/**",
         ".env",
+<<<<<<< HEAD
         ".env.example"
+=======
+        ".env.example",
+        ".roo/"
+>>>>>>> 62ba0cab244184c3a94aa293bc4d70fd2b9fd246
     ],
 }
