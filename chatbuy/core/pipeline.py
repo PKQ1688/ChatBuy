@@ -1,7 +1,20 @@
 import os
+import logging
 
 import pandas as pd
-import streamlit as st  # 可能需要用于状态或错误处理
+
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(),  # 输出到控制台
+        logging.FileHandler(
+            os.path.join("output", "pipeline.log"), mode="a"
+        ),  # 输出到文件
+    ],
+)
+logger = logging.getLogger("TradingPipeline")
 
 # --- 导入底层实现函数 ---
 # !! 这些导入需要根据实际情况调整 !!
@@ -10,7 +23,7 @@ try:
     # 修正：导入实际存在的函数 fetch_historical_data
     from scripts.get_crypto_data import fetch_historical_data
 except ImportError:
-    st.warning(
+    logger.warning(
         "Warning: Could not import 'fetch_historical_data' from 'scripts.get_crypto_data'. Step 1 will be unavailable."
     )
     fetch_historical_data = None
@@ -19,7 +32,7 @@ try:
     # 修正：导入实际存在的函数 visualize_btc_with_indicators
     from chatbuy.core.visualize_indicators import visualize_btc_with_indicators
 except ImportError:
-    st.warning(
+    logger.warning(
         "Warning: Could not import 'visualize_btc_with_indicators' from 'chatbuy.core.visualize_indicators'. Step 2 will be unavailable."
     )
     visualize_btc_with_indicators = None
@@ -30,7 +43,7 @@ try:
         TradePipeline as UndImgTradePipeline,
     )  # 使用别名避免与此类名冲突
 except ImportError:
-    st.warning(
+    logger.warning(
         "Warning: Could not import 'TradePipeline' from 'chatbuy.core.und_img'. Step 3 will be unavailable."
     )
     UndImgTradePipeline = None
@@ -39,7 +52,7 @@ try:
     # 修正：导入 evaluate_signals 函数
     from chatbuy.core.evaluate_trade_signals import evaluate_signals
 except ImportError:
-    st.warning(
+    logger.warning(
         "Warning: Could not import 'evaluate_signals' from 'chatbuy.core.evaluate_trade_signals'. Step 4 will be unavailable."
     )
     evaluate_signals = None
@@ -73,11 +86,11 @@ class TradingAnalysisPipeline:
             try:
                 # 传递 use_openrouter 参数
                 self.ai_pipeline = UndImgTradePipeline(use_openrouter=use_openrouter)
-                st.info(
+                logger.info(
                     f"AI Pipeline initialized using {'OpenRouter' if use_openrouter else 'Azure OpenAI (default)'}."
                 )
             except Exception as e:
-                st.error(f"Failed to initialize AI Pipeline from und_img: {e}")
+                logger.error(f"Failed to initialize AI Pipeline from und_img: {e}")
                 self.ai_pipeline = None
         else:
             self.ai_pipeline = None
@@ -100,13 +113,15 @@ class TradingAnalysisPipeline:
             timeframe = kwargs.get("timeframe", "1d")
             start_date = kwargs.get("start_date", "2017-07-01T00:00:00Z")
 
-            st.info(
+            logger.info(
                 f"Pipeline: Calling fetch_historical_data(symbol='{symbol}', timeframe='{timeframe}', start_date='{start_date}')..."
             )
             result_df = fetch_historical_data(
                 symbol=symbol, timeframe=timeframe, start_date=start_date
             )
-            st.info(f"Pipeline: fetch_historical_data returned type: {type(result_df)}")
+            logger.info(
+                f"Pipeline: fetch_historical_data returned type: {type(result_df)}"
+            )
 
             if isinstance(result_df, pd.DataFrame) and not result_df.empty:
                 return {"success": True, "result": result_df, "error": None}
@@ -125,7 +140,7 @@ class TradingAnalysisPipeline:
                 }
         except Exception as e:
             error_msg = f"调用 `fetch_historical_data` 出错：\n{e}"
-            st.error(f"Pipeline Error: {error_msg}")
+            logger.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "result": None, "error": error_msg}
 
     def run_step_2_generate_image(self, data_input):
@@ -149,20 +164,20 @@ class TradingAnalysisPipeline:
 
         try:
             # 修正：调用 visualize_btc_with_indicators 并传递预设的完整输出路径
-            st.info(
+            logger.info(
                 f"Pipeline: Calling visualize_btc_with_indicators with output path: {IMAGE_FILE}..."
             )
             # 函数现在接受 data 和 output_file_path
             returned_path = visualize_btc_with_indicators(
                 data_input, output_file_path=IMAGE_FILE
             )
-            st.info(
+            logger.info(
                 f"Pipeline: visualize_btc_with_indicators returned: {returned_path}"
             )
 
             # 验证返回的路径是否与预期一致且文件存在
             if returned_path == IMAGE_FILE and os.path.exists(returned_path):
-                st.info(
+                logger.info(
                     f"Pipeline: Image successfully generated and found at {returned_path}"
                 )
                 return {"success": True, "image_path": returned_path, "error": None}
@@ -170,14 +185,14 @@ class TradingAnalysisPipeline:
                 error_msg = (
                     f"函数调用成功并返回预期路径 {returned_path}，但文件未找到。"
                 )
-                st.error(f"Pipeline Error: {error_msg}")
+                logger.error(f"Pipeline Error: {error_msg}")
                 return {"success": False, "image_path": None, "error": error_msg}
             elif returned_path != IMAGE_FILE:
                 error_msg = f"函数返回了意外的路径 '{returned_path}' 而不是预期的 '{IMAGE_FILE}'。"
-                st.warning(f"Pipeline Warning: {error_msg}")
+                logger.warning(f"Pipeline Warning: {error_msg}")
                 # 尝试检查返回的路径是否存在
                 if os.path.exists(returned_path):
-                    st.info(
+                    logger.info(
                         f"Pipeline: Image found at unexpected path {returned_path}. Using this path."
                     )
                     return {
@@ -186,7 +201,7 @@ class TradingAnalysisPipeline:
                         "error": None,
                     }  # 仍然认为是成功，但路径非预期
                 else:
-                    st.error(
+                    logger.error(
                         f"Pipeline Error: Image not found at unexpected path {returned_path} either."
                     )
                     return {
@@ -196,12 +211,12 @@ class TradingAnalysisPipeline:
                     }
             else:  # returned_path is None or not a string (should not happen based on function modification)
                 error_msg = f"visualize_btc_with_indicators 返回了 None 或非字符串值。"
-                st.error(f"Pipeline Error: {error_msg}")
+                logger.error(f"Pipeline Error: {error_msg}")
                 return {"success": False, "image_path": None, "error": error_msg}
 
         except Exception as e:
             error_msg = f"调用 `visualize_btc_with_indicators` 出错：\n{e}"
-            st.error(f"Pipeline Error: {error_msg}")
+            logger.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "image_path": None, "error": error_msg}
 
     def run_step_3_analyze_signals(self, image_path: str, strategy: str | None = None):
@@ -227,19 +242,19 @@ class TradingAnalysisPipeline:
 
         try:
             # 修正：调用 und_img.TradePipeline 的 run_pipeline 方法
-            st.info(
+            logger.info(
                 f"Pipeline: Calling AI Pipeline (und_img) with image: {image_path}..."
             )
             # 如果未提供策略，使用 und_img 中的默认策略
             call_args = {"image_path": image_path}
             if strategy:
                 call_args["strategy"] = strategy
-                st.info(f"Using custom strategy: {strategy}")
+                logger.info(f"Using custom strategy: {strategy}")
             else:
-                st.info("Using default strategy from und_img.")
+                logger.info("Using default strategy from und_img.")
 
             trade_advice = self.ai_pipeline.run_pipeline(**call_args)
-            st.info(
+            logger.info(
                 f"Pipeline: AI Pipeline returned: Action={trade_advice.action}, Reason={trade_advice.reason}"
             )
 
@@ -247,7 +262,7 @@ class TradingAnalysisPipeline:
             return {"success": True, "result": trade_advice, "error": None}
         except Exception as e:
             error_msg = f"调用 AI Pipeline (und_img) 出错：\n{e}"
-            st.error(f"Pipeline Error: {error_msg}")
+            logger.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "result": None, "error": error_msg}
 
     def run_step_4_generate_report(self, price_df: pd.DataFrame):
@@ -285,19 +300,19 @@ class TradingAnalysisPipeline:
                 }
 
             # 保存价格 DataFrame 到临时文件
-            st.info(
+            logger.info(
                 f"Pipeline: Saving price data to temporary file: {temp_prices_path}"
             )
             price_df.to_csv(temp_prices_path, index=False)
 
             # 调用评估函数
-            st.info(
+            logger.info(
                 f"Pipeline: Calling evaluate_signals with signals='{signals_path}' and prices='{temp_prices_path}'..."
             )
             evaluation_result = evaluate_signals(
                 signals_path=signals_path, prices_path=temp_prices_path
             )
-            st.info(
+            logger.info(
                 f"Pipeline: evaluate_signals returned success={evaluation_result.get('success')}"
             )
 
@@ -316,18 +331,18 @@ class TradingAnalysisPipeline:
         except Exception as e:
             # 捕获保存临时文件或调用评估函数时的意外错误
             error_msg = f"执行评估步骤时出错：\n{e}"
-            st.error(f"Pipeline Error: {error_msg}")
+            logger.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "report": None, "error": error_msg}
         finally:
             # 清理临时价格文件
             if os.path.exists(temp_prices_path):
                 try:
                     os.remove(temp_prices_path)
-                    st.info(
+                    logger.info(
                         f"Pipeline: Removed temporary price file: {temp_prices_path}"
                     )
                 except Exception as e:
-                    st.warning(
+                    logger.warning(
                         f"Pipeline Warning: Failed to remove temporary price file {temp_prices_path}: {e}"
                     )
 
