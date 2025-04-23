@@ -1,6 +1,7 @@
 import os
 
 import pandas as pd
+from chatbuy.logger import log  # 导入日志记录器
 
 
 def evaluate_signals(signals_path: str, prices_path: str) -> dict:
@@ -27,8 +28,10 @@ def evaluate_signals(signals_path: str, prices_path: str) -> dict:
     try:
         # --- 数据加载和准备 ---
         if not os.path.exists(signals_path):
+            log.error(f"信号文件未找到: {signals_path}")
             return {"success": False, "error": f"信号文件未找到: {signals_path}"}
         if not os.path.exists(prices_path):
+            log.error(f"价格文件未找到: {prices_path}")
             return {"success": False, "error": f"价格文件未找到: {prices_path}"}
 
         signals = pd.read_csv(signals_path)
@@ -36,6 +39,7 @@ def evaluate_signals(signals_path: str, prices_path: str) -> dict:
         if "trade_time" in signals.columns and "timestamp" not in signals.columns:
             signals = signals.rename(columns={"trade_time": "timestamp"})
         if "timestamp" not in signals.columns or "action" not in signals.columns:
+            log.error("信号文件缺少 'timestamp' 或 'action' 列。")
             return {
                 "success": False,
                 "error": "信号文件缺少 'timestamp' 或 'action' 列。",
@@ -43,21 +47,18 @@ def evaluate_signals(signals_path: str, prices_path: str) -> dict:
 
         prices = pd.read_csv(prices_path)
         if "timestamp" not in prices.columns or "close" not in prices.columns:
+            log.error("价格文件缺少 'timestamp' 或 'close' 列。")
             return {
                 "success": False,
                 "error": "价格文件缺少 'timestamp' 或 'close' 列。",
             }
-
-        # 确保 timestamp 列是可比较的类型 (例如字符串或 datetime)
-        # 这里假设它们已经是兼容的格式，如果不是，需要转换
-        # signals['timestamp'] = pd.to_datetime(signals['timestamp'])
-        # prices['timestamp'] = pd.to_datetime(prices['timestamp'])
 
         # 合并信号和价格
         df = pd.merge(
             signals, prices[["timestamp", "close"]], on="timestamp", how="inner"
         )
         if df.empty:
+            log.error("信号和价格数据没有共同的时间戳，无法合并。")
             return {
                 "success": False,
                 "error": "信号和价格数据没有共同的时间戳，无法合并。",
@@ -66,8 +67,8 @@ def evaluate_signals(signals_path: str, prices_path: str) -> dict:
         # --- 模拟交易 ---
         position = 0
         buy_price = 0
-        trades = []  # 存储每笔交易的盈亏
-        trade_details = []  # 存储交易明细 (timestamp, action, price)
+        trades = []
+        trade_details = []
 
         for idx, row in df.iterrows():
             if row["action"] == "buy" and position == 0:
@@ -75,14 +76,14 @@ def evaluate_signals(signals_path: str, prices_path: str) -> dict:
                 position = 1
                 trade_details.append(
                     (row["timestamp"], "buy", float(buy_price))
-                )  # 存储 float
+                )
             elif row["action"] == "sell" and position == 1:
                 sell_price = row["close"]
                 profit = sell_price - buy_price
                 trades.append(profit)
                 trade_details.append(
                     (row["timestamp"], "sell", float(sell_price))
-                )  # 存储 float
+                )
                 position = 0
 
         # 如果最后还有持仓，强制在最后一根K线卖出
@@ -93,7 +94,7 @@ def evaluate_signals(signals_path: str, prices_path: str) -> dict:
             trades.append(profit)
             trade_details.append(
                 (last_row["timestamp"], "sell", float(sell_price))
-            )  # 存储 float
+            )
             position = 0
 
         # --- 统计结果 ---
@@ -115,24 +116,24 @@ def evaluate_signals(signals_path: str, prices_path: str) -> dict:
         }
 
     except Exception as e:
+        log.error("评估信号时出错", exc_info=True)
         return {"success": False, "error": f"评估信号时出错: {e}"}
 
 
 # --- 保留原始脚本的 __main__ 部分，用于独立测试 ---
 if __name__ == "__main__":
-    # 使用默认路径进行测试
     signals_file = "output/trade_advice_unified_results_one.csv"
     prices_file = "data/BTC_USDT_1d_with_indicators.csv"
 
     results = evaluate_signals(signals_file, prices_file)
 
     if results["success"]:
-        print(f"总交易次数: {results['total_trades']}")
-        print(f"总收益: {results['total_profit']:.2f}")
-        print(f"胜率: {results['win_rate']:.2%}")
-        print(f"平均单笔收益: {results['avg_profit']:.2f}")
-        print("\n每笔交易明细:")
+        log.info(f"总交易次数: {results['total_trades']}")
+        log.info(f"总收益: {results['total_profit']:.2f}")
+        log.info(f"胜率: {results['win_rate']:.2%}")
+        log.info(f"平均单笔收益: {results['avg_profit']:.2f}")
+        log.info("\n每笔交易明细:")
         for detail in results["trade_details"]:
-            print(detail)
+            log.info(detail)
     else:
-        print(f"评估失败: {results['error']}")
+        log.error(f"评估失败: {results['error']}")

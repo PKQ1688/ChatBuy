@@ -2,12 +2,13 @@ import os
 
 import gradio as gr
 import pandas as pd
+from chatbuy.logger import log # 导入日志记录器
 
 # --- 导入 Pipeline ---
 try:
     from chatbuy.core.pipeline import TradingAnalysisPipeline
 except ImportError as e:
-    print(f"错误：无法导入 TradingAnalysisPipeline: {e}")
+    log.error(f"错误：无法导入 TradingAnalysisPipeline", exc_info=True) # 使用 log.error
     # 在 Gradio 中，我们不能像 Streamlit 那样直接停止应用，
     # 但可以在界面上显示错误信息。
     pipeline_import_error = f"无法导入核心处理模块: {e}"
@@ -86,6 +87,7 @@ def create_gradio_app():
                                 value=pd.read_csv(result).head(), visible=True
                             )
                         except Exception as e:
+                            log.warning("数据获取成功，但预览失败", exc_info=True) # 添加日志
                             status_update = gr.update(
                                 value=f"数据获取成功，但预览失败: {e}",
                                 interactive=False,
@@ -98,6 +100,7 @@ def create_gradio_app():
                         data_result = result  # 存储其他类型结果
                 else:
                     data_fetched = False
+                    log.error(f"数据获取失败：{pipeline_result['error']}") # 添加日志
                     status_update = gr.update(
                         value=f"数据获取失败：\n{pipeline_result['error']}",
                         interactive=False,
@@ -130,6 +133,7 @@ def create_gradio_app():
 
             def run_generate_image(current_data_result, is_data_fetched):
                 if not is_data_fetched:
+                    log.warning("需要先获取数据才能生成图片") # 添加日志
                     return (
                         gr.update(value="错误：需要先获取数据。", interactive=False),
                         gr.update(visible=False),
@@ -157,6 +161,7 @@ def create_gradio_app():
                 else:
                     image_path = None
                     image_generated = False
+                    log.error(f"图片生成失败：{pipeline_result['error']}") # 添加日志
                     status_update = gr.update(
                         value=f"图片生成失败：\n{pipeline_result['error']}",
                         interactive=False,
@@ -192,6 +197,7 @@ def create_gradio_app():
 
             def run_ai_analysis(current_image_path, is_image_generated):
                 if not is_image_generated:
+                    log.warning("需要先生成图片才能进行AI分析") # 添加日志
                     return (
                         gr.update(value="错误：需要先生成图片。", interactive=False),
                         gr.update(visible=False),
@@ -201,6 +207,7 @@ def create_gradio_app():
                         False,  # analysis_done_state
                     )
                 if not current_image_path:
+                    log.error("无法找到用于AI分析的图片路径") # 添加日志
                     return (
                         gr.update(
                             value="错误：无法找到用于AI分析的图片路径。",
@@ -242,6 +249,7 @@ def create_gradio_app():
                         )
                         raw_update = gr.update(visible=False)
                     else:
+                        log.warning(f"AI 返回了非预期的结果: {analysis_result}") # 添加日志
                         raw_update = gr.update(
                             value=f"AI 返回了非预期的结果: {analysis_result}",
                             visible=True,
@@ -252,6 +260,7 @@ def create_gradio_app():
                 else:
                     analysis_result = None
                     analysis_done = False
+                    log.error(f"AI分析失败：{pipeline_result['error']}") # 添加日志
                     status_update = gr.update(
                         value=f"AI分析失败：\n{pipeline_result['error']}",
                         interactive=False,
@@ -300,6 +309,7 @@ def create_gradio_app():
                 report_generated = False  # Default value
 
                 if not is_data_fetched:
+                    log.warning("需要先获取数据才能生成报告") # 添加日志
                     status_update = gr.update(
                         value="错误：需要先获取数据。", interactive=False
                     )
@@ -318,6 +328,7 @@ def create_gradio_app():
 
                 # 检查数据是否为 DataFrame
                 if not isinstance(current_data_result, pd.DataFrame):
+                    log.error("无法执行评估，因为第一步获取的数据不是 DataFrame") # 添加日志
                     status_update = gr.update(
                         value="错误：无法执行评估，因为第一步获取的数据不是 DataFrame。",
                         interactive=False,
@@ -388,6 +399,7 @@ def create_gradio_app():
                 else:
                     evaluation_data = None
                     report_generated = False
+                    log.error(f"评估报告生成失败：{pipeline_result['error']}") # 添加日志
                     status_update = gr.update(
                         value=f"评估报告生成失败：\n{pipeline_result['error']}",
                         interactive=False,
