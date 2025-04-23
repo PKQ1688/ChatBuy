@@ -6,7 +6,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from chatbuy.core.und_img import TradePipeline
-from chatbuy.logger import log # 导入日志记录器
+from chatbuy.logger import log  # 导入日志记录器
 
 
 def get_image_paths(image_dir: str, exts=None):

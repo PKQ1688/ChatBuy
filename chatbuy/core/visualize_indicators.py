@@ -1,10 +1,11 @@
 import os
+from typing import List, Optional, Tuple
+
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from mplfinance.original_flavor import candlestick_ohlc
-from typing import List, Optional, Tuple
 
 
 class IndicatorVisualizer:
