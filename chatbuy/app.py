@@ -49,22 +49,14 @@ def create_gradio_app():
                 import datetime
 
                 today = datetime.date.today()
-                # Gradio 4.x 官方推荐日期选择器
-                start_date_input = gr.Date(
-                    value=today - datetime.timedelta(days=365),
+                # 使用 Gradio 5.25+ 的 DateTime 组件来代替 Textbox
+                start_date_input = gr.DateTime(
                     label="起始时间",
-                    interactive=True,
-                    min_date=datetime.date(2010, 1, 1),
-                    max_date=today,
-                    info="选择起始日期",
+                    value=(today - datetime.timedelta(days=365)),
                 )
-                end_date_input = gr.Date(
-                    value=today,
+                end_date_input = gr.DateTime(
                     label="结束时间",
-                    interactive=True,
-                    min_date=datetime.date(2010, 1, 1),
-                    max_date=today,
-                    info="选择结束日期（可选）",
+                    value=today,
                 )
             with gr.Row():
                 fetch_button = gr.Button("Fetch Data", variant="primary")
@@ -80,7 +72,7 @@ def create_gradio_app():
                 label="Data File Path", visible=False, interactive=False
             )
 
-            def run_fetch_data(symbol, timeframe, start_date, end_date):
+            def run_fetch_data(symbol, timeframe, start_date, end_date): 
                 status_update = gr.update(
                     value="Calling Pipeline to fetch data...", interactive=False
                 )
@@ -93,13 +85,39 @@ def create_gradio_app():
                     interactive=False
                 )  # Disable the report button
 
+                # DateTime component returns datetime objects directly
+                try:
+                    # Verification and conversion if needed
+                    if start_date is not None:
+                        # DateTime component already returns a datetime object
+                        start_dt = start_date
+                    else:
+                        raise ValueError("Start date is required")
+                        
+                    if end_date is not None:
+                        # DateTime component already returns a datetime object
+                        end_dt = end_date
+                    else:
+                        end_dt = None
+                except Exception as e:
+                    log.error(f"Error processing date inputs: {e}")
+                    return (
+                        gr.update(value=f"错误：日期处理失败。详情: {e}", interactive=False), 
+                        gr.update(visible=False), 
+                        gr.update(visible=False), 
+                        None, 
+                        False, 
+                        gr.update(interactive=False), 
+                        gr.update(interactive=False), 
+                    )
+
                 kwargs = {
                     "symbol": symbol,
                     "timeframe": timeframe,
-                    "start_date": start_date,
+                    "start_date": start_dt,
                 }
-                if end_date and end_date.strip():
-                    kwargs["end_date"] = end_date.strip()
+                if end_dt:
+                    kwargs["end_date"] = end_dt
 
                 pipeline_result = pipeline.run_step_1_fetch_data(**kwargs)
 
