@@ -9,7 +9,7 @@ from chatbuy.logger import log
 try:
     from chatbuy.core.pipeline import TradingAnalysisPipeline
 except ImportError as e:
-    log.error(f"Error: Failed to import TradingAnalysisPipeline", exc_info=True) # Use log.error
+    log.error("Error: Failed to import TradingAnalysisPipeline", exc_info=True) # Use log.error
     # In Gradio, we can't stop the app directly like in Streamlit,
     # but we can display an error message in the interface.
     pipeline_import_error = f"Failed to import core processing module: {e}"

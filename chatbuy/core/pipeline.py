@@ -80,9 +80,14 @@ class TradingAnalysisPipeline:
             self.ai_pipeline = None
 
     def run_step_1_fetch_data(self, **kwargs):
-        """
-        Execute Step 1: Fetch Candlestick Data.
-        Returns: {"success": bool, "result": pd.DataFrame | None, "error": str | None}
+        """Execute Step 1: Fetch Candlestick Data.
+
+        Args:
+            **kwargs: Keyword arguments passed to fetch_historical_data (e.g., symbol, timeframe, start_date).
+
+        Returns:
+            A dictionary containing the execution status and results:
+            {"success": bool, "result": pd.DataFrame | None, "error": str | None}.
         """
         if not fetch_historical_data:
             return {
@@ -128,10 +133,14 @@ class TradingAnalysisPipeline:
             return {"success": False, "result": None, "error": error_msg}
 
     def run_step_2_generate_image(self, data_input):
-        """
-        Execute Step 2: Generate Candlestick Image.
-        Args: data_input: Data obtained from Step 1 (DataFrame or path)
-        Returns: {"success": bool, "image_path": str | None, "error": str | None}
+        """Execute Step 2: Generate Candlestick Image.
+
+        Args:
+            data_input: Data obtained from Step 1 (DataFrame or path).
+
+        Returns:
+            A dictionary containing the execution status and results:
+            {"success": bool, "image_path": str | None, "error": str | None}.
         """
         if not visualize_btc_with_indicators:
             return {
@@ -194,7 +203,7 @@ class TradingAnalysisPipeline:
                         "error": error_msg + " File also not found.",
                     }
             else:  # returned_path is None or not a string (should not happen based on function modification)
-                error_msg = f"visualize_btc_with_indicators returned None or a non-string value."
+                error_msg = "visualize_btc_with_indicators returned None or a non-string value."
                 logger.error(f"Pipeline Error: {error_msg}")
                 return {"success": False, "image_path": None, "error": error_msg}
 
@@ -204,12 +213,15 @@ class TradingAnalysisPipeline:
             return {"success": False, "image_path": None, "error": error_msg}
 
     def run_step_3_analyze_signals(self, image_path: str, strategy: str | None = None):
-        """
-        Execute Step 3: Analyze buy/sell points using the AI Pipeline from und_img.py.
+        """Execute Step 3: Analyze buy/sell points using the AI Pipeline.
+
         Args:
-            image_path: Path to the image generated in Step 2
-            strategy: Optional trading strategy description string
-        Returns: {"success": bool, "result": TradeAdvice | None, "error": str | None}
+            image_path: Path to the image generated in Step 2.
+            strategy: Optional trading strategy description string.
+
+        Returns:
+            A dictionary containing the execution status and results:
+            {"success": bool, "result": TradeAdvice | None, "error": str | None}.
         """
         if not self.ai_pipeline:
             return {
@@ -250,12 +262,18 @@ class TradingAnalysisPipeline:
             return {"success": False, "result": None, "error": error_msg}
 
     def run_step_4_generate_report(self, price_df: pd.DataFrame):
-        """
-        Execute Step 4: Evaluate trading signals using evaluate_signals.
-        Note: Currently assumes the signal file 'output/trade_advice_unified_results_one.csv' exists.
-        Args: price_df: Price DataFrame obtained from Step 1
-        Returns: {"success": bool, "report": dict | None, "error": str | None}
-               The report dictionary contains evaluation results (total_trades, total_profit, etc.)
+        """Execute Step 4: Evaluate trading signals using evaluate_signals.
+
+        Note:
+            Currently assumes the signal file 'output/trade_advice_unified_results_one.csv' exists.
+
+        Args:
+            price_df: Price DataFrame obtained from Step 1.
+
+        Returns:
+            A dictionary containing the execution status and report:
+            {"success": bool, "report": dict | None, "error": str | None}.
+            The report dictionary contains evaluation results (total_trades, total_profit, etc.).
         """
         if not evaluate_signals:
             return {
