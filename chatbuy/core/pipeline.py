@@ -1,49 +1,16 @@
 import os
 
 import pandas as pd
+from scripts.get_crypto_data import fetch_historical_data
 
-from chatbuy.logger import logger
-
-try:
-    from scripts.get_crypto_data import fetch_historical_data
-except ImportError:
-    logger.warning(
-        "Warning: Could not import 'fetch_historical_data' from 'scripts.get_crypto_data'. Step 1 will be unavailable."
-    )
-    fetch_historical_data = None
-
-try:
-    # Fix: Import the actual existing function visualize_btc_with_indicators
-    from chatbuy.core.visualize_indicators import visualize_btc_with_indicators
-except ImportError:
-    logger.warning(
-        "Warning: Could not import 'visualize_btc_with_indicators' from 'chatbuy.core.visualize_indicators'. Step 2 will be unavailable."
-    )
-    visualize_btc_with_indicators = None
-
-try:
-    # Fix: Import the TradePipeline class from und_img
-    from chatbuy.core.und_img import (
-        TradePipeline as UndImgTradePipeline,
-    )  # Use an alias to avoid conflict with this class name
-except ImportError:
-    logger.warning(
-        "Warning: Could not import 'TradePipeline' from 'chatbuy.core.und_img'. Step 3 will be unavailable."
-    )
-    UndImgTradePipeline = None
-
-try:
-    # Fix: Import the evaluate_signals function
-    from chatbuy.core.evaluate_trade_signals import evaluate_signals
-except ImportError:
-    logger.warning(
-        "Warning: Could not import 'evaluate_signals' from 'chatbuy.core.evaluate_trade_signals'. Step 4 will be unavailable."
-    )
-    evaluate_signals = None
-
+from chatbuy.core.evaluate_trade_signals import evaluate_signals
+from chatbuy.core.und_img import TradePipeline as UndImgTradePipeline
+from chatbuy.core.visualize_indicators import IndicatorVisualizer
+from chatbuy.logger import log
 
 # --- Configuration (consider moving to a dedicated config file or class attributes) ---
 DATA_DIR = "data"
+CACHE_SUBDIR = os.path.join(DATA_DIR, "cache")
 OUTPUT_DIR = "output"
 IMAGE_FILE = os.path.join(OUTPUT_DIR, "kline_plot.png")
 AI_RESULT_FILE = os.path.join(
@@ -61,29 +28,32 @@ class TradingAnalysisPipeline:
     Returns a dictionary containing status and results/errors.
     """
 
-    def __init__(self, use_openrouter: bool = False):  # Allow configuration of the AI model
+    def __init__(
+        self, use_openrouter: bool = False
+    ):  # Allow configuration of the AI model
         """Initialize, ensure directories exist, and initialize the AI Pipeline."""
         os.makedirs(DATA_DIR, exist_ok=True)
+        os.makedirs(CACHE_SUBDIR, exist_ok=True)
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         # Initialize AI Pipeline instance
         if UndImgTradePipeline:
             try:
                 # Pass the use_openrouter parameter
                 self.ai_pipeline = UndImgTradePipeline(use_openrouter=use_openrouter)
-                logger.info(
+                log.info(
                     f"AI Pipeline initialized using {'OpenRouter' if use_openrouter else 'Azure OpenAI (default)'}."
                 )
             except Exception as e:
-                logger.error(f"Failed to initialize AI Pipeline from und_img: {e}")
+                log.error(f"Failed to initialize AI Pipeline from und_img: {e}")
                 self.ai_pipeline = None
         else:
             self.ai_pipeline = None
 
     def run_step_1_fetch_data(self, **kwargs):
-        """Execute Step 1: Fetch Candlestick Data.
+        """Execute Step 1: Fetch Candlestick Data, with local cache support.
 
         Args:
-            **kwargs: Keyword arguments passed to fetch_historical_data (e.g., symbol, timeframe, start_date).
+            **kwargs: Keyword arguments passed to fetch_historical_data (e.g., symbol, timeframe, start_date, end_date).
 
         Returns:
             A dictionary containing the execution status and results:
@@ -97,22 +67,61 @@ class TradingAnalysisPipeline:
             }
 
         try:
-            # Fix: Call fetch_historical_data and provide default parameters (or get from kwargs)
-            symbol = kwargs.get("symbol", "BTC/USDT")  # Note: ccxt uses '/'
+            import hashlib
+
+            symbol = kwargs.get("symbol", "BTC/USDT")
             timeframe = kwargs.get("timeframe", "1d")
             start_date = kwargs.get("start_date", "2017-07-01T00:00:00Z")
+            end_date = kwargs.get("end_date", None)
 
-            logger.info(
+            # 生成唯一缓存文件名
+            def safe_str(s):
+                return str(s).replace("/", "_").replace(":", "-")
+
+            cache_key = f"{safe_str(symbol)}_{safe_str(timeframe)}_{safe_str(start_date)}"
+            if end_date:
+                cache_key += f"_{safe_str(end_date)}"
+            # 防止文件名过长
+            cache_hash = hashlib.md5(cache_key.encode("utf-8")).hexdigest()
+            cache_file = os.path.join(CACHE_SUBDIR, f"{cache_key}_{cache_hash}.csv")
+
+            # 检查本地缓存
+            if os.path.exists(cache_file):
+                try:
+                    df = pd.read_csv(cache_file, parse_dates=["timestamp"])
+                    # end_date 过滤（兼容旧缓存）
+                    if end_date:
+                        df = df[df["timestamp"] <= pd.to_datetime(end_date)]
+                    if not df.empty:
+                        log.info(f"Loaded cached data from {cache_file}")
+                        return {"success": True, "result": df, "error": None}
+                    else:
+                        log.warning(f"Cached file {cache_file} is empty, will refetch.")
+                except Exception as e:
+                    log.warning(f"Failed to read cache file {cache_file}: {e}, will refetch.")
+
+            # 获取数据
+            log.info(
                 f"Pipeline: Calling fetch_historical_data(symbol='{symbol}', timeframe='{timeframe}', start_date='{start_date}')..."
             )
             result_df = fetch_historical_data(
                 symbol=symbol, timeframe=timeframe, start_date=start_date
             )
-            logger.info(
+            # end_date 过滤
+            if end_date and isinstance(result_df, pd.DataFrame):
+                result_df = result_df[result_df["timestamp"] <= pd.to_datetime(end_date)]
+
+            log.info(
                 f"Pipeline: fetch_historical_data returned type: {type(result_df)}"
             )
 
             if isinstance(result_df, pd.DataFrame) and not result_df.empty:
+                # 保存到本地
+                try:
+                    result_df.to_csv(cache_file, index=False)
+                    log.info(f"Saved fetched data to {cache_file}")
+                except Exception as e:
+                    log.warning(f"Failed to save data to cache file {cache_file}: {e}")
                 return {"success": True, "result": result_df, "error": None}
             elif isinstance(result_df, pd.DataFrame) and result_df.empty:
                 return {
@@ -121,7 +130,6 @@ class TradingAnalysisPipeline:
                     "error": "Data fetched successfully, but the returned data is empty.",
                 }
             else:
-                # This should not happen, as the function is designed to return a DataFrame
                 return {
                     "success": False,
                     "result": None,
@@ -129,7 +137,7 @@ class TradingAnalysisPipeline:
                 }
         except Exception as e:
             error_msg = f"Error calling `fetch_historical_data`:\n{e}"
-            logger.error(f"Pipeline Error: {error_msg}")
+            log.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "result": None, "error": error_msg}
 
     def run_step_2_generate_image(self, data_input):
@@ -142,7 +150,7 @@ class TradingAnalysisPipeline:
             A dictionary containing the execution status and results:
             {"success": bool, "image_path": str | None, "error": str | None}.
         """
-        if not visualize_btc_with_indicators:
+        if not IndicatorVisualizer:
             return {
                 "success": False,
                 "image_path": None,
@@ -157,35 +165,33 @@ class TradingAnalysisPipeline:
 
         try:
             # Fix: Call visualize_btc_with_indicators and pass the preset full output path
-            logger.info(
-                f"Pipeline: Calling visualize_btc_with_indicators with output path: {IMAGE_FILE}..."
+            log.info(
+                f"Pipeline: Calling IndicatorVisualizer().visualize with output path: {IMAGE_FILE}..."
             )
-            # Function now accepts data and output_file_path
-            returned_path = visualize_btc_with_indicators(
+            visualizer = IndicatorVisualizer()
+            returned_path = visualizer.visualize(
                 data_input, output_file_path=IMAGE_FILE
             )
-            logger.info(
-                f"Pipeline: visualize_btc_with_indicators returned: {returned_path}"
+            log.info(
+                f"Pipeline: IndicatorVisualizer.visualize returned: {returned_path}"
             )
 
             # Verify if the returned path matches the expectation and the file exists
             if returned_path == IMAGE_FILE and os.path.exists(returned_path):
-                logger.info(
+                log.info(
                     f"Pipeline: Image successfully generated and found at {returned_path}"
                 )
                 return {"success": True, "image_path": returned_path, "error": None}
             elif returned_path == IMAGE_FILE and not os.path.exists(returned_path):
-                error_msg = (
-                    f"Function call succeeded and returned expected path {returned_path}, but the file was not found."
-                )
-                logger.error(f"Pipeline Error: {error_msg}")
+                error_msg = f"Function call succeeded and returned expected path {returned_path}, but the file was not found."
+                log.error(f"Pipeline Error: {error_msg}")
                 return {"success": False, "image_path": None, "error": error_msg}
             elif returned_path != IMAGE_FILE:
                 error_msg = f"Function returned an unexpected path '{returned_path}' instead of the expected '{IMAGE_FILE}'."
-                logger.warning(f"Pipeline Warning: {error_msg}")
+                log.warning(f"Pipeline Warning: {error_msg}")
                 # Try checking if the returned path exists
                 if os.path.exists(returned_path):
-                    logger.info(
+                    log.info(
                         f"Pipeline: Image found at unexpected path {returned_path}. Using this path."
                     )
                     return {
@@ -194,7 +200,7 @@ class TradingAnalysisPipeline:
                         "error": None,
                     }  # Still considered successful, but the path is unexpected
                 else:
-                    logger.error(
+                    log.error(
                         f"Pipeline Error: Image not found at unexpected path {returned_path} either."
                     )
                     return {
@@ -203,13 +209,15 @@ class TradingAnalysisPipeline:
                         "error": error_msg + " File also not found.",
                     }
             else:  # returned_path is None or not a string (should not happen based on function modification)
-                error_msg = "visualize_btc_with_indicators returned None or a non-string value."
-                logger.error(f"Pipeline Error: {error_msg}")
+                error_msg = (
+                    "visualize_btc_with_indicators returned None or a non-string value."
+                )
+                log.error(f"Pipeline Error: {error_msg}")
                 return {"success": False, "image_path": None, "error": error_msg}
 
         except Exception as e:
             error_msg = f"Error calling `visualize_btc_with_indicators`:\n{e}"
-            logger.error(f"Pipeline Error: {error_msg}")
+            log.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "image_path": None, "error": error_msg}
 
     def run_step_3_analyze_signals(self, image_path: str, strategy: str | None = None):
@@ -238,19 +246,19 @@ class TradingAnalysisPipeline:
 
         try:
             # Fix: Call the run_pipeline method of und_img.TradePipeline
-            logger.info(
+            log.info(
                 f"Pipeline: Calling AI Pipeline (und_img) with image: {image_path}..."
             )
             # If no strategy is provided, use the default strategy from und_img
             call_args = {"image_path": image_path}
             if strategy:
                 call_args["strategy"] = strategy
-                logger.info(f"Using custom strategy: {strategy}")
+                log.info(f"Using custom strategy: {strategy}")
             else:
-                logger.info("Using default strategy from und_img.")
+                log.info("Using default strategy from und_img.")
 
             trade_advice = self.ai_pipeline.run_pipeline(**call_args)
-            logger.info(
+            log.info(
                 f"Pipeline: AI Pipeline returned: Action={trade_advice.action}, Reason={trade_advice.reason}"
             )
 
@@ -258,7 +266,7 @@ class TradingAnalysisPipeline:
             return {"success": True, "result": trade_advice, "error": None}
         except Exception as e:
             error_msg = f"Error calling AI Pipeline (und_img):\n{e}"
-            logger.error(f"Pipeline Error: {error_msg}")
+            log.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "result": None, "error": error_msg}
 
     def run_step_4_generate_report(self, price_df: pd.DataFrame):
@@ -302,19 +310,19 @@ class TradingAnalysisPipeline:
                 }
 
             # Save the price DataFrame to a temporary file
-            logger.info(
+            log.info(
                 f"Pipeline: Saving price data to temporary file: {temp_prices_path}"
             )
             price_df.to_csv(temp_prices_path, index=False)
 
             # Call the evaluation function
-            logger.info(
+            log.info(
                 f"Pipeline: Calling evaluate_signals with signals='{signals_path}' and prices='{temp_prices_path}'..."
             )
             evaluation_result = evaluate_signals(
                 signals_path=signals_path, prices_path=temp_prices_path
             )
-            logger.info(
+            log.info(
                 f"Pipeline: evaluate_signals returned success={evaluation_result.get('success')}"
             )
 
@@ -327,24 +335,26 @@ class TradingAnalysisPipeline:
                 return {
                     "success": False,
                     "report": None,
-                    "error": evaluation_result.get("error", "Unknown error occurred during signal evaluation."),
+                    "error": evaluation_result.get(
+                        "error", "Unknown error occurred during signal evaluation."
+                    ),
                 }
 
         except Exception as e:
             # Catch unexpected errors when saving the temporary file or calling the evaluation function
             error_msg = f"Error executing evaluation step:\n{e}"
-            logger.error(f"Pipeline Error: {error_msg}")
+            log.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "report": None, "error": error_msg}
         finally:
             # Clean up the temporary price file
             if os.path.exists(temp_prices_path):
                 try:
                     os.remove(temp_prices_path)
-                    logger.info(
+                    log.info(
                         f"Pipeline: Removed temporary price file: {temp_prices_path}"
                     )
                 except Exception as e:
-                    logger.warning(
+                    log.warning(
                         f"Pipeline Warning: Failed to remove temporary price file {temp_prices_path}: {e}"
                     )
 

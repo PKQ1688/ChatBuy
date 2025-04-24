@@ -3,22 +3,10 @@ import os
 import gradio as gr
 import pandas as pd
 
+from chatbuy.core.pipeline import TradingAnalysisPipeline
 from chatbuy.logger import log
 
-# --- Import Pipeline ---
-try:
-    from chatbuy.core.pipeline import TradingAnalysisPipeline
-except ImportError as e:
-    log.error("Error: Failed to import TradingAnalysisPipeline", exc_info=True) # Use log.error
-    # In Gradio, we can't stop the app directly like in Streamlit,
-    # but we can display an error message in the interface.
-    pipeline_import_error = f"Failed to import core processing module: {e}"
-    pipeline = None  # Set to None for later checks
-else:
-    pipeline_import_error = None
-    # --- Initialize Pipeline ---
-    # Gradio apps are typically initialized once on startup
-    pipeline = TradingAnalysisPipeline()
+pipeline = TradingAnalysisPipeline()
 
 # --- Gradio App ---
 
@@ -28,7 +16,7 @@ def create_gradio_app():
     if pipeline is None:
         with gr.Blocks() as app:
             gr.Markdown("# Trading Strategy Analysis Pipeline (Pipeline Version)")
-            gr.Error(f"Application initialization failed: {pipeline_import_error}")
+            gr.Error("Application initialization failed: pipeline_import_error")
         return app
 
     with gr.Blocks(title="Trading Strategy Analysis Pipeline") as app:
@@ -48,32 +36,85 @@ def create_gradio_app():
         # --- Step 1: Fetch Candlestick Data ---
         with gr.Tab("Step 1: Fetch Data"):
             with gr.Row():
+                symbol_input = gr.Textbox(
+                    value="BTC/USDT", label="Symbol (标的)", interactive=True
+                )
+                timeframe_input = gr.Dropdown(
+                    choices=["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"],
+                    value="1d",
+                    label="Timeframe (K线周期)",
+                    interactive=True,
+                )
+                # 常用日期选项
+                import datetime
+
+                today = datetime.date.today()
+                # Gradio 4.x 官方推荐日期选择器
+                start_date_input = gr.Date(
+                    value=today - datetime.timedelta(days=365),
+                    label="起始时间",
+                    interactive=True,
+                    min_date=datetime.date(2010, 1, 1),
+                    max_date=today,
+                    info="选择起始日期",
+                )
+                end_date_input = gr.Date(
+                    value=today,
+                    label="结束时间",
+                    interactive=True,
+                    min_date=datetime.date(2010, 1, 1),
+                    max_date=today,
+                    info="选择结束日期（可选）",
+                )
+            with gr.Row():
                 fetch_button = gr.Button("Fetch Data", variant="primary")
                 fetch_status = gr.Textbox(
-                    "Click the button to start fetching data...", label="Status", interactive=False
+                    "Click the button to start fetching data...",
+                    label="Status",
+                    interactive=False,
                 )
-            fetch_output_df = gr.DataFrame(label="Data Preview (first 5 rows)", visible=False)
+            fetch_output_df = gr.DataFrame(
+                label="Data Preview (first 5 rows)", visible=False
+            )
             fetch_output_path = gr.Textbox(
                 label="Data File Path", visible=False, interactive=False
             )
 
-            def run_fetch_data():
+            def run_fetch_data(symbol, timeframe, start_date, end_date):
                 status_update = gr.update(
                     value="Calling Pipeline to fetch data...", interactive=False
                 )
                 df_update = gr.update(visible=False)
                 path_update = gr.update(visible=False)
-                next_button_update = gr.update(interactive=False)  # Disable the next button
-                report_button_update = gr.update(interactive=False)  # Disable the report button
+                next_button_update = gr.update(
+                    interactive=False
+                )  # Disable the next button
+                report_button_update = gr.update(
+                    interactive=False
+                )  # Disable the report button
 
-                pipeline_result = pipeline.run_step_1_fetch_data()
+                kwargs = {
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "start_date": start_date,
+                }
+                if end_date and end_date.strip():
+                    kwargs["end_date"] = end_date.strip()
+
+                pipeline_result = pipeline.run_step_1_fetch_data(**kwargs)
 
                 if pipeline_result["success"]:
                     result = pipeline_result["result"]
                     data_fetched = True
-                    status_update = gr.update(value="Data fetched successfully!", interactive=False)
-                    next_button_update = gr.update(interactive=True)  # Enable the generate image button
-                    report_button_update = gr.update(interactive=True)  # Enable the report button
+                    status_update = gr.update(
+                        value="Data fetched successfully!", interactive=False
+                    )
+                    next_button_update = gr.update(
+                        interactive=True
+                    )  # Enable the generate image button
+                    report_button_update = gr.update(
+                        interactive=True
+                    )  # Enable the report button
 
                     if isinstance(result, pd.DataFrame):
                         df_update = gr.update(value=result.head(), visible=True)
@@ -88,7 +129,10 @@ def create_gradio_app():
                                 value=pd.read_csv(result).head(), visible=True
                             )
                         except Exception as e:
-                            log.warning("Data fetched successfully, but preview failed", exc_info=True) # Add log
+                            log.warning(
+                                "Data fetched successfully, but preview failed",
+                                exc_info=True,
+                            )  # Add log
                             status_update = gr.update(
                                 value=f"Data fetched successfully, but preview failed: {e}",
                                 interactive=False,
@@ -96,12 +140,15 @@ def create_gradio_app():
                         data_result = result  # Store file path
                     else:
                         status_update = gr.update(
-                            value=f"Data fetched successfully, function returned: {result}", interactive=False
+                            value=f"Data fetched successfully, function returned: {result}",
+                            interactive=False,
                         )
                         data_result = result  # Store other result types
                 else:
                     data_fetched = False
-                    log.error(f"Data fetch failed: {pipeline_result['error']}") # Add log
+                    log.error(
+                        f"Data fetch failed: {pipeline_result['error']}"
+                    )  # Add log
                     status_update = gr.update(
                         value=f"Data fetch failed:\n{pipeline_result['error']}",
                         interactive=False,
@@ -126,7 +173,9 @@ def create_gradio_app():
                     "Generate Image", variant="primary", interactive=False
                 )  # Initially disabled
                 image_status = gr.Textbox(
-                    "Please complete Step 1 (Fetch Data) first.", label="Status", interactive=False
+                    "Please complete Step 1 (Fetch Data) first.",
+                    label="Status",
+                    interactive=False,
                 )
             generated_image = gr.Image(
                 label="Generated Candlestick Chart", type="filepath", visible=False
@@ -134,9 +183,11 @@ def create_gradio_app():
 
             def run_generate_image(current_data_result, is_data_fetched):
                 if not is_data_fetched:
-                    log.warning("Need to fetch data before generating image") # Add log
+                    log.warning("Need to fetch data before generating image")  # Add log
                     return (
-                        gr.update(value="Error: Need to fetch data first.", interactive=False),
+                        gr.update(
+                            value="Error: Need to fetch data first.", interactive=False
+                        ),
                         gr.update(visible=False),
                         None,  # image_path_state
                         False,  # image_generated_state
@@ -147,7 +198,9 @@ def create_gradio_app():
                     value="Calling Pipeline to generate image...", interactive=False
                 )
                 image_update = gr.update(visible=False)
-                next_button_update = gr.update(interactive=False)  # Disable the next button
+                next_button_update = gr.update(
+                    interactive=False
+                )  # Disable the next button
 
                 pipeline_result = pipeline.run_step_2_generate_image(
                     current_data_result
@@ -156,13 +209,19 @@ def create_gradio_app():
                 if pipeline_result["success"]:
                     image_path = pipeline_result["image_path"]
                     image_generated = True
-                    status_update = gr.update(value="Image generated successfully!", interactive=False)
+                    status_update = gr.update(
+                        value="Image generated successfully!", interactive=False
+                    )
                     image_update = gr.update(value=image_path, visible=True)
-                    next_button_update = gr.update(interactive=True)  # Enable the next button
+                    next_button_update = gr.update(
+                        interactive=True
+                    )  # Enable the next button
                 else:
                     image_path = None
                     image_generated = False
-                    log.error(f"Image generation failed: {pipeline_result['error']}") # Add log
+                    log.error(
+                        f"Image generation failed: {pipeline_result['error']}"
+                    )  # Add log
                     status_update = gr.update(
                         value=f"Image generation failed:\n{pipeline_result['error']}",
                         interactive=False,
@@ -183,7 +242,9 @@ def create_gradio_app():
                     "AI Analysis", variant="primary", interactive=False
                 )  # Initially disabled
                 analyze_status = gr.Textbox(
-                    "Please complete Step 2 (Generate Image) first.", label="Status", interactive=False
+                    "Please complete Step 2 (Generate Image) first.",
+                    label="Status",
+                    interactive=False,
                 )
             with gr.Row():
                 analysis_action = gr.Textbox(
@@ -193,14 +254,19 @@ def create_gradio_app():
                     label="Reason", interactive=False, visible=False
                 )
             analysis_raw_output = gr.Textbox(
-                label="Raw Output (if unexpected format)", interactive=False, visible=False
+                label="Raw Output (if unexpected format)",
+                interactive=False,
+                visible=False,
             )
 
             def run_ai_analysis(current_image_path, is_image_generated):
                 if not is_image_generated:
-                    log.warning("Need to generate image before AI analysis") # Add log
+                    log.warning("Need to generate image before AI analysis")  # Add log
                     return (
-                        gr.update(value="Error: Need to generate image first.", interactive=False),
+                        gr.update(
+                            value="Error: Need to generate image first.",
+                            interactive=False,
+                        ),
                         gr.update(visible=False),
                         gr.update(visible=False),
                         gr.update(visible=False),
@@ -208,7 +274,7 @@ def create_gradio_app():
                         False,  # analysis_done_state
                     )
                 if not current_image_path:
-                    log.error("Could not find image path for AI analysis") # Add log
+                    log.error("Could not find image path for AI analysis")  # Add log
                     return (
                         gr.update(
                             value="Error: Could not find image path for AI analysis.",
@@ -235,7 +301,9 @@ def create_gradio_app():
                 if pipeline_result["success"]:
                     analysis_result = pipeline_result["result"]
                     analysis_done = True
-                    status_update = gr.update(value="AI analysis successful!", interactive=False)
+                    status_update = gr.update(
+                        value="AI analysis successful!", interactive=False
+                    )
 
                     # Assume trade_advice is an instance of und_img.TradeAdvice or similar structure
                     # Gradio Textbox input needs to be a string
@@ -250,7 +318,9 @@ def create_gradio_app():
                         )
                         raw_update = gr.update(visible=False)
                     else:
-                        log.warning(f"AI returned an unexpected result: {analysis_result}") # Add log
+                        log.warning(
+                            f"AI returned an unexpected result: {analysis_result}"
+                        )  # Add log
                         raw_update = gr.update(
                             value=f"AI returned an unexpected result: {analysis_result}",
                             visible=True,
@@ -261,7 +331,9 @@ def create_gradio_app():
                 else:
                     analysis_result = None
                     analysis_done = False
-                    log.error(f"AI analysis failed: {pipeline_result['error']}") # Add log
+                    log.error(
+                        f"AI analysis failed: {pipeline_result['error']}"
+                    )  # Add log
                     status_update = gr.update(
                         value=f"AI analysis failed:\n{pipeline_result['error']}",
                         interactive=False,
@@ -286,13 +358,17 @@ def create_gradio_app():
                     "Generate Evaluation Report", variant="primary", interactive=False
                 )  # Initially disabled
                 report_status = gr.Textbox(
-                    "Please complete Step 1 (Fetch Data) first.", label="Status", interactive=False
+                    "Please complete Step 1 (Fetch Data) first.",
+                    label="Status",
+                    interactive=False,
                 )
             with gr.Row(visible=False) as report_metrics_row:
                 report_trades = gr.Number(label="Total Trades", interactive=False)
                 report_profit = gr.Number(label="Total Profit", interactive=False)
                 report_win_rate = gr.Number(label="Win Rate (%)", interactive=False)
-                report_avg_profit = gr.Number(label="Average Profit per Trade", interactive=False)
+                report_avg_profit = gr.Number(
+                    label="Average Profit per Trade", interactive=False
+                )
             report_details_df = gr.DataFrame(label="Trade Details", visible=False)
             final_message = gr.Markdown("", visible=False)
 
@@ -310,7 +386,9 @@ def create_gradio_app():
                 report_generated = False  # Default value
 
                 if not is_data_fetched:
-                    log.warning("Need to fetch data before generating report") # Add log
+                    log.warning(
+                        "Need to fetch data before generating report"
+                    )  # Add log
                     status_update = gr.update(
                         value="Error: Need to fetch data first.", interactive=False
                     )
@@ -329,7 +407,9 @@ def create_gradio_app():
 
                 # Check if data is a DataFrame
                 if not isinstance(current_data_result, pd.DataFrame):
-                    log.error("Cannot perform evaluation because the data fetched in Step 1 is not a DataFrame") # Add log
+                    log.error(
+                        "Cannot perform evaluation because the data fetched in Step 1 is not a DataFrame"
+                    )  # Add log
                     status_update = gr.update(
                         value="Error: Cannot perform evaluation because the data fetched in Step 1 is not a DataFrame.",
                         interactive=False,
@@ -348,7 +428,8 @@ def create_gradio_app():
                     )
 
                 status_update = gr.update(
-                    value="Calling Pipeline to generate evaluation report...", interactive=False
+                    value="Calling Pipeline to generate evaluation report...",
+                    interactive=False,
                 )
 
                 pipeline_result = pipeline.run_step_4_generate_report(
@@ -359,7 +440,8 @@ def create_gradio_app():
                     evaluation_data = pipeline_result["report"]
                     report_generated = True
                     status_update = gr.update(
-                        value="Evaluation report generated successfully!", interactive=False
+                        value="Evaluation report generated successfully!",
+                        interactive=False,
                     )
                     metrics_row_update = gr.update(visible=True)
                     details_df_update = gr.update(
@@ -400,7 +482,9 @@ def create_gradio_app():
                 else:
                     evaluation_data = None
                     report_generated = False
-                    log.error(f"Evaluation report generation failed: {pipeline_result['error']}") # Add log
+                    log.error(
+                        f"Evaluation report generation failed: {pipeline_result['error']}"
+                    )  # Add log
                     status_update = gr.update(
                         value=f"Evaluation report generation failed:\n{pipeline_result['error']}",
                         interactive=False,
@@ -425,7 +509,12 @@ def create_gradio_app():
         # --- Connect Buttons and Functions ---
         fetch_button.click(
             fn=run_fetch_data,
-            inputs=[],
+            inputs=[
+                symbol_input,
+                timeframe_input,
+                start_date_input,
+                end_date_input,
+            ],
             outputs=[
                 fetch_status,
                 fetch_output_df,

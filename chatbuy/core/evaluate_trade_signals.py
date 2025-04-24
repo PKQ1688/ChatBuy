@@ -2,18 +2,18 @@ import os
 
 import pandas as pd
 
-from chatbuy.logger import log  # 导入日志记录器
+from chatbuy.logger import log
 
 
 def evaluate_signals(signals_path: str, prices_path: str) -> dict:
-    """根据信号文件和价格文件模拟交易并评估表现.
+    """Simulate trading and evaluate performance based on signal and price files.
 
     Args:
-        signals_path (str): 交易信号文件的路径 (CSV, 需要包含 'action' 和 'trade_time'/'timestamp' 列)。
-        prices_path (str): 价格数据文件的路径 (CSV, 需要包含 'timestamp' 和 'close' 列)。
+        signals_path (str): Path to the trading signal file (CSV, must contain 'action' and 'trade_time'/'timestamp' columns).
+        prices_path (str): Path to the price data file (CSV, must contain 'timestamp' and 'close' columns).
 
     Returns:
-        dict: 包含评估结果的字典，例如:
+        dict: Dictionary containing evaluation results, for example:
               {
                   "success": bool,
                   "error": str | None,
@@ -24,48 +24,48 @@ def evaluate_signals(signals_path: str, prices_path: str) -> dict:
                   "avg_profit": float,
                   "trade_details": list[tuple] # [(timestamp, action, price), ...]
               }
-              如果文件读取或处理失败，success 为 False 并包含 error 信息。
+              If file reading or processing fails, success is False and error contains the message.
     """
     try:
-        # --- 数据加载和准备 ---
+        # --- Data loading and preparation ---
         if not os.path.exists(signals_path):
-            log.error(f"信号文件未找到: {signals_path}")
-            return {"success": False, "error": f"信号文件未找到: {signals_path}"}
+            log.error(f"Signal file not found: {signals_path}")
+            return {"success": False, "error": f"Signal file not found: {signals_path}"}
         if not os.path.exists(prices_path):
-            log.error(f"价格文件未找到: {prices_path}")
-            return {"success": False, "error": f"价格文件未找到: {prices_path}"}
+            log.error(f"Price file not found: {prices_path}")
+            return {"success": False, "error": f"Price file not found: {prices_path}"}
 
         signals = pd.read_csv(signals_path)
-        # 兼容旧列名 'trade_time'
+        # Compatible with old column name 'trade_time'
         if "trade_time" in signals.columns and "timestamp" not in signals.columns:
             signals = signals.rename(columns={"trade_time": "timestamp"})
         if "timestamp" not in signals.columns or "action" not in signals.columns:
-            log.error("信号文件缺少 'timestamp' 或 'action' 列。")
+            log.error("Signal file missing 'timestamp' or 'action' column.")
             return {
                 "success": False,
-                "error": "信号文件缺少 'timestamp' 或 'action' 列。",
+                "error": "Signal file missing 'timestamp' or 'action' column.",
             }
 
         prices = pd.read_csv(prices_path)
         if "timestamp" not in prices.columns or "close" not in prices.columns:
-            log.error("价格文件缺少 'timestamp' 或 'close' 列。")
+            log.error("Price file missing 'timestamp' or 'close' column.")
             return {
                 "success": False,
-                "error": "价格文件缺少 'timestamp' 或 'close' 列。",
+                "error": "Price file missing 'timestamp' or 'close' column.",
             }
 
-        # 合并信号和价格
+        # Merge signals and prices
         df = pd.merge(
             signals, prices[["timestamp", "close"]], on="timestamp", how="inner"
         )
         if df.empty:
-            log.error("信号和价格数据没有共同的时间戳，无法合并。")
+            log.error("No common timestamps between signals and prices, cannot merge.")
             return {
                 "success": False,
-                "error": "信号和价格数据没有共同的时间戳，无法合并。",
+                "error": "No common timestamps between signals and prices, cannot merge.",
             }
 
-        # --- 模拟交易 ---
+        # --- Simulate trading ---
         position = 0
         buy_price = 0
         trades = []
@@ -75,30 +75,24 @@ def evaluate_signals(signals_path: str, prices_path: str) -> dict:
             if row["action"] == "buy" and position == 0:
                 buy_price = row["close"]
                 position = 1
-                trade_details.append(
-                    (row["timestamp"], "buy", float(buy_price))
-                )
+                trade_details.append((row["timestamp"], "buy", float(buy_price)))
             elif row["action"] == "sell" and position == 1:
                 sell_price = row["close"]
                 profit = sell_price - buy_price
                 trades.append(profit)
-                trade_details.append(
-                    (row["timestamp"], "sell", float(sell_price))
-                )
+                trade_details.append((row["timestamp"], "sell", float(sell_price)))
                 position = 0
 
-        # 如果最后还有持仓，强制在最后一根K线卖出
+        # If there is still a position at the end, force sell at the last candle
         if position == 1 and not df.empty:
             last_row = df.iloc[-1]
             sell_price = last_row["close"]
             profit = sell_price - buy_price
             trades.append(profit)
-            trade_details.append(
-                (last_row["timestamp"], "sell", float(sell_price))
-            )
+            trade_details.append((last_row["timestamp"], "sell", float(sell_price)))
             position = 0
 
-        # --- 统计结果 ---
+        # --- Statistics ---
         total_trades = len(trades)
         total_profit = sum(trades)
         win_count = sum(1 for t in trades if t > 0)
@@ -117,11 +111,13 @@ def evaluate_signals(signals_path: str, prices_path: str) -> dict:
         }
 
     except Exception as e:
-        log.error("评估信号时出错", exc_info=True)
-        return {"success": False, "error": f"评估信号时出错: {e}"}
+        log.error("Error occurred during signal evaluation", exc_info=True)
+        return {
+            "success": False,
+            "error": f"Error occurred during signal evaluation: {e}",
+        }
 
 
-# --- 保留原始脚本的 __main__ 部分，用于独立测试 ---
 if __name__ == "__main__":
     signals_file = "output/trade_advice_unified_results_one.csv"
     prices_file = "data/BTC_USDT_1d_with_indicators.csv"
@@ -129,12 +125,12 @@ if __name__ == "__main__":
     results = evaluate_signals(signals_file, prices_file)
 
     if results["success"]:
-        log.info(f"总交易次数: {results['total_trades']}")
-        log.info(f"总收益: {results['total_profit']:.2f}")
-        log.info(f"胜率: {results['win_rate']:.2%}")
-        log.info(f"平均单笔收益: {results['avg_profit']:.2f}")
-        log.info("\n每笔交易明细:")
+        log.info(f"Total trades: {results['total_trades']}")
+        log.info(f"Total profit: {results['total_profit']:.2f}")
+        log.info(f"Win rate: {results['win_rate']:.2%}")
+        log.info(f"Average profit per trade: {results['avg_profit']:.2f}")
+        log.info("\nTrade details:")
         for detail in results["trade_details"]:
             log.info(detail)
     else:
-        log.error(f"评估失败: {results['error']}")
+        log.error(f"Evaluation failed: {results['error']}")

@@ -6,11 +6,9 @@ from rich.logging import RichHandler
 logging.basicConfig(
     level="INFO",
     format="%(message)s",
-    datefmt="[%X]",
-    handlers=[RichHandler(rich_tracebacks=True, show_path=False)],
+    handlers=[RichHandler(rich_tracebacks=True, show_path=True, markup=True)],
 )
 
-# Configure logger
 log = logging.getLogger("chatbuy")
 
 if __name__ == "__main__":

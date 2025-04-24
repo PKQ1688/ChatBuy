@@ -6,7 +6,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from chatbuy.core.und_img import TradePipeline
-from chatbuy.logger import log  # Import logger
+from chatbuy.logger import log
 
 
 def get_image_paths(image_dir: str, exts=None):
@@ -79,6 +79,7 @@ def _prepare_batch_data(
             ) # Use log.warning
             df = pd.DataFrame()  # Ensure df exists even if file not found
         except Exception as e:
+            log.error(e)
             log.error(f"Error reading or processing CSV {csv_path}", exc_info=True) # Use log.error
             df = pd.DataFrame()  # Ensure df exists
 
@@ -158,6 +159,7 @@ async def batch_process(
                         f"Received None advice for timestamp {ts} on attempt {attempt + 1}/{max_retries}. Retrying after {retry_delay}s..."
                     ) # Use log.warning
             except Exception as e:
+                log.error(e)
                 log.error(
                     f"Error processing timestamp {ts} on attempt {attempt + 1}/{max_retries}. Retrying after {retry_delay}s...",
                     exc_info=True
