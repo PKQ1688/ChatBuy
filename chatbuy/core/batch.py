@@ -6,11 +6,11 @@ import pandas as pd
 from tqdm import tqdm
 
 from chatbuy.core.und_img import TradePipeline
-from chatbuy.logger import log  # 导入日志记录器
+from chatbuy.logger import log  # Import logger
 
 
 def get_image_paths(image_dir: str, exts=None):
-    """获取指定目录下所有图片文件路径."""
+    """Get all image file paths in the specified directory."""
     if exts is None:
         exts = ["*.png", "*.jpg", "*.jpeg"]
     paths = []
@@ -72,14 +72,14 @@ def _prepare_batch_data(
             else:
                 log.warning(
                     "DataFrame is empty after timestamp filtering. No market data windows will be created."
-                ) # 使用 log.warning
+                ) # Use log.warning
         except FileNotFoundError:
             log.warning(
                 f"CSV file not found at {csv_path}. Proceeding without market data."
-            ) # 使用 log.warning
+            ) # Use log.warning
             df = pd.DataFrame()  # Ensure df exists even if file not found
         except Exception as e:
-            log.error(f"Error reading or processing CSV {csv_path}", exc_info=True) # 使用 log.error
+            log.error(f"Error reading or processing CSV {csv_path}", exc_info=True) # Use log.error
             df = pd.DataFrame()  # Ensure df exists
 
     if not image_dir and not csv_path:
@@ -156,19 +156,19 @@ async def batch_process(
                 else:
                     log.warning(
                         f"Received None advice for timestamp {ts} on attempt {attempt + 1}/{max_retries}. Retrying after {retry_delay}s..."
-                    ) # 使用 log.warning
+                    ) # Use log.warning
             except Exception as e:
                 log.error(
                     f"Error processing timestamp {ts} on attempt {attempt + 1}/{max_retries}. Retrying after {retry_delay}s...",
                     exc_info=True
-                ) # 使用 log.error
+                ) # Use log.error
 
             if attempt < max_retries - 1:
                 await asyncio.sleep(retry_delay)
             else:
                 log.error(
                     f"Failed to get advice for timestamp {ts} after {max_retries} attempts."
-                ) # 使用 log.error
+                ) # Use log.error
 
         if advice is not None:
             action = str(advice.action)
@@ -190,7 +190,7 @@ async def batch_process(
 
     results = []
     if not tasks:
-        log.info("No tasks to process based on available data and timestamps.") # 使用 log.info
+        log.info("No tasks to process based on available data and timestamps.") # Use log.info
     else:
         semaphore = asyncio.Semaphore(concurrency_limit)
 
@@ -216,7 +216,7 @@ async def batch_process(
     out_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
     log.info(
         f"Processed {len(results)} timestamps asynchronously, results saved to {output_csv}"
-    ) # 使用 log.info
+    ) # Use log.info
 
 
 def batch_process_sync(
@@ -229,7 +229,7 @@ def batch_process_sync(
     start_timestamp: str = None,
     end_timestamp: str = None,
 ):
-    """同步版本：逐个顺序处理每个 timestamp."""
+    """Synchronous version: Process each timestamp sequentially one by one."""
     pipeline = TradePipeline(use_openrouter=use_openrouter)
     all_timestamps, img_map, md_windows = _prepare_batch_data(
         image_dir, csv_path, window_size, start_timestamp, end_timestamp
@@ -237,7 +237,7 @@ def batch_process_sync(
 
     results = []
     if not all_timestamps:
-        log.info("No timestamps to process based on available data.") # 使用 log.info
+        log.info("No timestamps to process based on available data.") # Use log.info
     else:
         with tqdm(
             total=len(all_timestamps), desc="Processing unified batch (Sync)"
@@ -268,7 +268,7 @@ def batch_process_sync(
                             action = "error"
                             reason = "Sync pipeline returned None"
                     except Exception as e:
-                        log.error(f"Error processing timestamp {ts} synchronously", exc_info=True) # 使用 log.error
+                        log.error(f"Error processing timestamp {ts} synchronously", exc_info=True) # Use log.error
                         action = "error"
                         reason = f"Sync Exception: {e}"
                 else:
@@ -284,7 +284,7 @@ def batch_process_sync(
     out_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
     log.info(
         f"Processed {len(results)} timestamps synchronously, results saved to {output_csv}"
-    ) # 使用 log.info
+    ) # Use log.info
 
 
 async def run_validation_retry_process(
@@ -305,7 +305,7 @@ async def run_validation_retry_process(
     os.makedirs(os.path.dirname(baseline_csv), exist_ok=True)
     os.makedirs(os.path.dirname(async_temp_csv), exist_ok=True)
 
-    log.info("--- Step 1: Running Synchronous Baseline ---") # 使用 log.info
+    log.info("--- Step 1: Running Synchronous Baseline ---") # Use log.info
     batch_process_sync(
         image_dir=image_dir,
         csv_path=csv_path,
@@ -319,7 +319,7 @@ async def run_validation_retry_process(
 
     log.info(
         f"--- Step 2: Running Asynchronous Batch (Concurrency={async_concurrency}) ---"
-    ) # 使用 log.info
+    ) # Use log.info
     await batch_process(
         image_dir=image_dir,
         csv_path=csv_path,
@@ -332,12 +332,12 @@ async def run_validation_retry_process(
         concurrency_limit=async_concurrency,
     )
 
-    log.info("--- Step 3: Comparing Results and Identifying Retries ---") # 使用 log.info
+    log.info("--- Step 3: Comparing Results and Identifying Retries ---") # Use log.info
     try:  # Outer try for file loading and comparison logic
         baseline_df = pd.read_csv(baseline_csv)
         async_df = pd.read_csv(async_temp_csv)
     except FileNotFoundError:
-        log.error("Baseline or async temp file not found. Aborting comparison.") # 使用 log.error
+        log.error("Baseline or async temp file not found. Aborting comparison.") # Use log.error
         # No need to clean up here, finally will handle it
         return  # Exit if files aren't ready
     else:  # This block executes only if the try block succeeds (files loaded)
@@ -345,13 +345,13 @@ async def run_validation_retry_process(
         if baseline_df.empty or async_df.empty:
             log.warning(
                 "Baseline or async result dataframe is empty. Skipping comparison and retry."
-            ) # 使用 log.warning
+            ) # Use log.warning
             # Decide what to do - maybe save baseline?
             if not baseline_df.empty:
                 baseline_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
-                log.info(f"Saved non-empty baseline results to {output_csv}") # 使用 log.info
+                log.info(f"Saved non-empty baseline results to {output_csv}") # Use log.info
             else:
-                log.info("Both baseline and async results are empty.") # 使用 log.info
+                log.info("Both baseline and async results are empty.") # Use log.info
             # Skip retry logic if data is missing
         else:
             # Merge results for comparison
@@ -374,14 +374,14 @@ async def run_validation_retry_process(
             if not retry_timestamps:
                 log.info(
                     "No discrepancies found or only errors in async. Using baseline results as final."
-                ) # 使用 log.info
+                ) # Use log.info
                 baseline_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
-                log.info(f"Baseline results saved to {output_csv}") # 使用 log.info
+                log.info(f"Baseline results saved to {output_csv}") # Use log.info
             else:
                 log.info(
                     f"Found {len(retry_timestamps)} timestamps requiring synchronous retry."
-                ) # 使用 log.info
-                log.info("--- Step 4: Performing Synchronous Retries ---") # 使用 log.info
+                ) # Use log.info
+                log.info("--- Step 4: Performing Synchronous Retries ---") # Use log.info
 
                 _, img_map_full, md_windows_full = _prepare_batch_data(
                     image_dir, csv_path, window_size, start_timestamp, end_timestamp
@@ -423,7 +423,7 @@ async def run_validation_retry_process(
                                     "No data found for retry timestamp (unexpected)"
                                 )
                         except Exception as e:
-                            log.error(f"Error during retry for timestamp {ts}", exc_info=True) # 使用 log.error
+                            log.error(f"Error during retry for timestamp {ts}", exc_info=True) # Use log.error
                             reason = f"Retry Exception: {e}"
 
                         # Corrected indentation for code outside except but inside loop
@@ -436,7 +436,7 @@ async def run_validation_retry_process(
                         )
                         pbar.update(1)
 
-                log.info("--- Step 5: Merging Final Results ---") # 使用 log.info
+                log.info("--- Step 5: Merging Final Results ---") # Use log.info
                 retry_df = pd.DataFrame(retry_results)
 
                 # Ensure retry_df is not empty before proceeding
@@ -448,16 +448,16 @@ async def run_validation_retry_process(
                     final_df.reset_index(inplace=True)
 
                     final_df.sort_values("trade_time", inplace=True)
-                    log.info(f"Saving final combined results to {output_csv}") # 使用 log.info
+                    log.info(f"Saving final combined results to {output_csv}") # Use log.info
                     final_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
                 else:
                     log.warning(
                         "Retry process yielded no results. Saving original baseline."
-                    ) # 使用 log.warning
+                    ) # Use log.warning
                     baseline_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
 
     finally:  # This finally corresponds to the outer try block starting at line 336 (Corrected Alignment)
-        log.info("--- Step 6: Cleaning up temporary files ---") # 使用 log.info
+        log.info("--- Step 6: Cleaning up temporary files ---") # Use log.info
         cleaned_count = 0
         try:  # Inner try for cleanup actions
             if os.path.exists(baseline_csv):
@@ -466,9 +466,9 @@ async def run_validation_retry_process(
             if os.path.exists(async_temp_csv):
                 os.remove(async_temp_csv)
                 cleaned_count += 1
-            log.info(f"Successfully removed {cleaned_count} temporary file(s).") # 使用 log.info
+            log.info(f"Successfully removed {cleaned_count} temporary file(s).") # Use log.info
         except OSError as e:
-            log.warning(f"Could not remove one or more temporary files: {e}") # 使用 log.warning
+            log.warning(f"Could not remove one or more temporary files: {e}") # Use log.warning
 
 
 # --- Main execution block ---
@@ -477,20 +477,20 @@ if __name__ == "__main__": # Corrected Alignment (No Indentation)
     image_dir = "data/btc_daily"
     csv_path = "data/BTC_USDT_1d_with_indicators.csv"
     output_file = "output/trade_advice_final_results_refactored.csv"
-    strategy = "只分析最后一天的K线数据。当天的收盘价格跌破布林线下轨时买入，当收盘价格超过布林线上轨时卖出，否则持有"
+    strategy = "Analyze only the last day's candlestick data. Buy when the closing price of the day breaks below the lower Bollinger Band, sell when the closing price exceeds the upper Bollinger Band, otherwise hold."
     start_date = "2021-06-30"
     end_date = "2021-12-31"
     concurrency = 10
     w_size = 120
     use_router = False
 
-    log.info("Starting validation process...") # 使用 log.info
+    log.info("Starting validation process...") # Use log.info
     log.info(
         f"Params: Image Dir='{image_dir}', CSV Path='{csv_path}', Output='{output_file}'"
-    ) # 使用 log.info
+    ) # Use log.info
     log.info(
         f"Strategy='{strategy[:50]}...', Dates={start_date}-{end_date}, Concurrency={concurrency}"
-    ) # 使用 log.info
+    ) # Use log.info
 
     asyncio.run(
         run_validation_retry_process(

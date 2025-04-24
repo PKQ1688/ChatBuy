@@ -1,31 +1,31 @@
-# 代码重构优化计划
+# Code Refactoring and Optimization Plan
 
-## 分析总结
+## Analysis Summary
 
-当前 `app.py` 存在以下问题：
+The current `app.py` has the following issues:
 
-1.  **Streamlit 运行时错误:** `st.set_page_config()` 调用位置不当。
-2.  **硬编码与灵活性:** 导入的函数名和路径硬编码在 `app.py` 中。
-3.  **单一文件职责过重:** `app.py` 承担过多职责，难以维护。
-4.  **函数接口不清晰:** 底层函数签名不确定。
-5.  **代码重复:** 各步骤 UI 和逻辑相似。
-6.  **错误处理:** 可以更友好。
+1.  **Streamlit Runtime Error:** Improper placement of the `st.set_page_config()` call.
+2.  **Hardcoding and Lack of Flexibility:** Imported function names and paths are hardcoded in `app.py`.
+3.  **Single File Overloaded:** `app.py` handles too many responsibilities, making it difficult to maintain.
+4.  **Unclear Function Interfaces:** The signatures of underlying functions are uncertain.
+5.  **Code Duplication:** UI and logic for various steps are similar.
+6.  **Error Handling:** Can be made more user-friendly.
 
-## 优化计划步骤
+## Optimization Plan Steps
 
-1.  **修复 Streamlit 错误:** 将 `st.set_page_config(layout="wide")` 移动到 `app.py` 文件顶部。
-2.  **抽象核心逻辑:**
-    *   在 `chatbuy/core/` 下创建 `pipeline.py`。
-    *   定义 `TradingAnalysisPipeline` 类或函数封装流程。
-    *   `pipeline.py` 负责与具体实现交互，提供稳定接口。
-3.  **简化 `app.py`:**
-    *   `app.py` 负责 UI 布局和调用 `pipeline` 接口。
-    *   提取重复 UI 代码为可重用函数。
-4.  **规范函数接口:** 明确 `chatbuy/core/` 各模块函数的输入输出。
-5.  **改进状态管理:** 简化 `st.session_state` 初始化。
-6.  **增强错误处理:** 在 `pipeline.py` 中集中处理错误，返回友好信息。
+1.  **Fix Streamlit Error:** Move `st.set_page_config(layout="wide")` to the top of the `app.py` file.
+2.  **Abstract Core Logic:**
+    *   Create `pipeline.py` under `chatbuy/core/`.
+    *   Define a `TradingAnalysisPipeline` class or function to encapsulate the workflow.
+    *   `pipeline.py` will be responsible for interacting with specific implementations and providing a stable interface.
+3.  **Simplify `app.py`:**
+    *   `app.py` will handle UI layout and call the `pipeline` interface.
+    *   Extract repetitive UI code into reusable functions.
+4.  **Standardize Function Interfaces:** Clearly define the inputs and outputs of functions in the `chatbuy/core/` modules.
+5.  **Improve State Management:** Simplify the initialization of `st.session_state`.
+6.  **Enhance Error Handling:** Centralize error handling in `pipeline.py` and return user-friendly messages.
 
-## 计划图示 (Mermaid)
+## Plan Diagram (Mermaid)
 
 ```mermaid
 graph TD

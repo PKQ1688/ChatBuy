@@ -1,26 +1,10 @@
-import logging
 import os
 
 import pandas as pd
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(),  # 输出到控制台
-        logging.FileHandler(
-            os.path.join("output", "pipeline.log"), mode="a"
-        ),  # 输出到文件
-    ],
-)
-logger = logging.getLogger("TradingPipeline")
+from chatbuy.logger import logger
 
-# --- 导入底层实现函数 ---
-# !! 这些导入需要根据实际情况调整 !!
-# !! 假设这些函数存在且可导入 !!
 try:
-    # 修正：导入实际存在的函数 fetch_historical_data
     from scripts.get_crypto_data import fetch_historical_data
 except ImportError:
     logger.warning(
@@ -29,7 +13,7 @@ except ImportError:
     fetch_historical_data = None
 
 try:
-    # 修正：导入实际存在的函数 visualize_btc_with_indicators
+    # Fix: Import the actual existing function visualize_btc_with_indicators
     from chatbuy.core.visualize_indicators import visualize_btc_with_indicators
 except ImportError:
     logger.warning(
@@ -38,10 +22,10 @@ except ImportError:
     visualize_btc_with_indicators = None
 
 try:
-    # 修正：导入 und_img 中的 TradePipeline 类
+    # Fix: Import the TradePipeline class from und_img
     from chatbuy.core.und_img import (
         TradePipeline as UndImgTradePipeline,
-    )  # 使用别名避免与此类名冲突
+    )  # Use an alias to avoid conflict with this class name
 except ImportError:
     logger.warning(
         "Warning: Could not import 'TradePipeline' from 'chatbuy.core.und_img'. Step 3 will be unavailable."
@@ -49,7 +33,7 @@ except ImportError:
     UndImgTradePipeline = None
 
 try:
-    # 修正：导入 evaluate_signals 函数
+    # Fix: Import the evaluate_signals function
     from chatbuy.core.evaluate_trade_signals import evaluate_signals
 except ImportError:
     logger.warning(
@@ -58,33 +42,33 @@ except ImportError:
     evaluate_signals = None
 
 
-# --- 配置 (可以考虑移到专门的配置文件或类属性) ---
+# --- Configuration (consider moving to a dedicated config file or class attributes) ---
 DATA_DIR = "data"
 OUTPUT_DIR = "output"
 IMAGE_FILE = os.path.join(OUTPUT_DIR, "kline_plot.png")
 AI_RESULT_FILE = os.path.join(
     OUTPUT_DIR, "trade_advice_results.csv"
-)  # 暂时未使用，AI函数可能直接返回结果
+)  # Currently unused, AI function might return results directly
 REPORT_FILE = os.path.join(
     OUTPUT_DIR, "evaluation_report.txt"
-)  # 暂时未使用，报告函数可能直接返回内容
+)  # Currently unused, report function might return content directly
 
 
 class TradingAnalysisPipeline:
-    """
-    封装交易策略分析的整个流程。
-    管理状态并在步骤之间传递数据。
-    返回包含状态和结果/错误的字典。
+    """Encapsulates the entire trading strategy analysis workflow.
+
+    Manages state and passes data between steps.
+    Returns a dictionary containing status and results/errors.
     """
 
-    def __init__(self, use_openrouter: bool = False):  # 允许配置 AI 模型
-        """初始化，确保目录存在，并初始化 AI Pipeline。"""
+    def __init__(self, use_openrouter: bool = False):  # Allow configuration of the AI model
+        """Initialize, ensure directories exist, and initialize the AI Pipeline."""
         os.makedirs(DATA_DIR, exist_ok=True)
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-        # 初始化 AI Pipeline 实例
+        # Initialize AI Pipeline instance
         if UndImgTradePipeline:
             try:
-                # 传递 use_openrouter 参数
+                # Pass the use_openrouter parameter
                 self.ai_pipeline = UndImgTradePipeline(use_openrouter=use_openrouter)
                 logger.info(
                     f"AI Pipeline initialized using {'OpenRouter' if use_openrouter else 'Azure OpenAI (default)'}."
@@ -97,19 +81,19 @@ class TradingAnalysisPipeline:
 
     def run_step_1_fetch_data(self, **kwargs):
         """
-        执行第一步：获取K线数据。
-        返回: {"success": bool, "result": pd.DataFrame | None, "error": str | None}
+        Execute Step 1: Fetch Candlestick Data.
+        Returns: {"success": bool, "result": pd.DataFrame | None, "error": str | None}
         """
         if not fetch_historical_data:
             return {
                 "success": False,
                 "result": None,
-                "error": "获取数据的函数 (fetch_historical_data) 未能成功导入。",
+                "error": "The function to fetch data (fetch_historical_data) could not be imported successfully.",
             }
 
         try:
-            # 修正：调用 fetch_historical_data 并提供默认参数 (或从 kwargs 获取)
-            symbol = kwargs.get("symbol", "BTC/USDT")  # 注意 ccxt 使用 '/'
+            # Fix: Call fetch_historical_data and provide default parameters (or get from kwargs)
+            symbol = kwargs.get("symbol", "BTC/USDT")  # Note: ccxt uses '/'
             timeframe = kwargs.get("timeframe", "1d")
             start_date = kwargs.get("start_date", "2017-07-01T00:00:00Z")
 
@@ -129,45 +113,45 @@ class TradingAnalysisPipeline:
                 return {
                     "success": False,
                     "result": None,
-                    "error": "获取数据成功，但返回的数据为空。",
+                    "error": "Data fetched successfully, but the returned data is empty.",
                 }
             else:
-                # 这不应该发生，因为函数设计为返回 DataFrame
+                # This should not happen, as the function is designed to return a DataFrame
                 return {
                     "success": False,
                     "result": None,
-                    "error": f"fetch_historical_data 返回了意外的类型: {type(result_df)}",
+                    "error": f"fetch_historical_data returned an unexpected type: {type(result_df)}",
                 }
         except Exception as e:
-            error_msg = f"调用 `fetch_historical_data` 出错：\n{e}"
+            error_msg = f"Error calling `fetch_historical_data`:\n{e}"
             logger.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "result": None, "error": error_msg}
 
     def run_step_2_generate_image(self, data_input):
         """
-        执行第二步：生成K线图片。
-        参数: data_input: 第一步获取的数据 (DataFrame 或路径)
-        返回: {"success": bool, "image_path": str | None, "error": str | None}
+        Execute Step 2: Generate Candlestick Image.
+        Args: data_input: Data obtained from Step 1 (DataFrame or path)
+        Returns: {"success": bool, "image_path": str | None, "error": str | None}
         """
         if not visualize_btc_with_indicators:
             return {
                 "success": False,
                 "image_path": None,
-                "error": "生成图片的函数 (visualize_btc_with_indicators) 未能成功导入。",
+                "error": "The function to generate images (visualize_btc_with_indicators) could not be imported successfully.",
             }
         if data_input is None:
             return {
                 "success": False,
                 "image_path": None,
-                "error": "错误：未提供有效的数据输入用于生成图片。",
+                "error": "Error: No valid data input provided for image generation.",
             }
 
         try:
-            # 修正：调用 visualize_btc_with_indicators 并传递预设的完整输出路径
+            # Fix: Call visualize_btc_with_indicators and pass the preset full output path
             logger.info(
                 f"Pipeline: Calling visualize_btc_with_indicators with output path: {IMAGE_FILE}..."
             )
-            # 函数现在接受 data 和 output_file_path
+            # Function now accepts data and output_file_path
             returned_path = visualize_btc_with_indicators(
                 data_input, output_file_path=IMAGE_FILE
             )
@@ -175,7 +159,7 @@ class TradingAnalysisPipeline:
                 f"Pipeline: visualize_btc_with_indicators returned: {returned_path}"
             )
 
-            # 验证返回的路径是否与预期一致且文件存在
+            # Verify if the returned path matches the expectation and the file exists
             if returned_path == IMAGE_FILE and os.path.exists(returned_path):
                 logger.info(
                     f"Pipeline: Image successfully generated and found at {returned_path}"
@@ -183,14 +167,14 @@ class TradingAnalysisPipeline:
                 return {"success": True, "image_path": returned_path, "error": None}
             elif returned_path == IMAGE_FILE and not os.path.exists(returned_path):
                 error_msg = (
-                    f"函数调用成功并返回预期路径 {returned_path}，但文件未找到。"
+                    f"Function call succeeded and returned expected path {returned_path}, but the file was not found."
                 )
                 logger.error(f"Pipeline Error: {error_msg}")
                 return {"success": False, "image_path": None, "error": error_msg}
             elif returned_path != IMAGE_FILE:
-                error_msg = f"函数返回了意外的路径 '{returned_path}' 而不是预期的 '{IMAGE_FILE}'。"
+                error_msg = f"Function returned an unexpected path '{returned_path}' instead of the expected '{IMAGE_FILE}'."
                 logger.warning(f"Pipeline Warning: {error_msg}")
-                # 尝试检查返回的路径是否存在
+                # Try checking if the returned path exists
                 if os.path.exists(returned_path):
                     logger.info(
                         f"Pipeline: Image found at unexpected path {returned_path}. Using this path."
@@ -199,7 +183,7 @@ class TradingAnalysisPipeline:
                         "success": True,
                         "image_path": returned_path,
                         "error": None,
-                    }  # 仍然认为是成功，但路径非预期
+                    }  # Still considered successful, but the path is unexpected
                 else:
                     logger.error(
                         f"Pipeline Error: Image not found at unexpected path {returned_path} either."
@@ -207,45 +191,45 @@ class TradingAnalysisPipeline:
                     return {
                         "success": False,
                         "image_path": None,
-                        "error": error_msg + " 文件也未找到。",
+                        "error": error_msg + " File also not found.",
                     }
             else:  # returned_path is None or not a string (should not happen based on function modification)
-                error_msg = f"visualize_btc_with_indicators 返回了 None 或非字符串值。"
+                error_msg = f"visualize_btc_with_indicators returned None or a non-string value."
                 logger.error(f"Pipeline Error: {error_msg}")
                 return {"success": False, "image_path": None, "error": error_msg}
 
         except Exception as e:
-            error_msg = f"调用 `visualize_btc_with_indicators` 出错：\n{e}"
+            error_msg = f"Error calling `visualize_btc_with_indicators`:\n{e}"
             logger.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "image_path": None, "error": error_msg}
 
     def run_step_3_analyze_signals(self, image_path: str, strategy: str | None = None):
         """
-        执行第三步：使用 und_img.py 中的 AI Pipeline 分析买卖点。
-        参数:
-            image_path: 第二步生成的图片路径
-            strategy: 可选的交易策略描述字符串
-        返回: {"success": bool, "result": TradeAdvice | None, "error": str | None}
+        Execute Step 3: Analyze buy/sell points using the AI Pipeline from und_img.py.
+        Args:
+            image_path: Path to the image generated in Step 2
+            strategy: Optional trading strategy description string
+        Returns: {"success": bool, "result": TradeAdvice | None, "error": str | None}
         """
         if not self.ai_pipeline:
             return {
                 "success": False,
                 "result": None,
-                "error": "AI 分析 Pipeline 未能成功初始化。",
+                "error": "AI Analysis Pipeline failed to initialize successfully.",
             }
         if not image_path or not os.path.exists(image_path):
             return {
                 "success": False,
                 "result": None,
-                "error": f"错误：未提供有效的图片路径用于AI分析: {image_path}",
+                "error": f"Error: No valid image path provided for AI analysis: {image_path}",
             }
 
         try:
-            # 修正：调用 und_img.TradePipeline 的 run_pipeline 方法
+            # Fix: Call the run_pipeline method of und_img.TradePipeline
             logger.info(
                 f"Pipeline: Calling AI Pipeline (und_img) with image: {image_path}..."
             )
-            # 如果未提供策略，使用 und_img 中的默认策略
+            # If no strategy is provided, use the default strategy from und_img
             call_args = {"image_path": image_path}
             if strategy:
                 call_args["strategy"] = strategy
@@ -258,54 +242,54 @@ class TradingAnalysisPipeline:
                 f"Pipeline: AI Pipeline returned: Action={trade_advice.action}, Reason={trade_advice.reason}"
             )
 
-            # run_pipeline 成功时返回 TradeAdvice 对象
+            # run_pipeline returns a TradeAdvice object on success
             return {"success": True, "result": trade_advice, "error": None}
         except Exception as e:
-            error_msg = f"调用 AI Pipeline (und_img) 出错：\n{e}"
+            error_msg = f"Error calling AI Pipeline (und_img):\n{e}"
             logger.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "result": None, "error": error_msg}
 
     def run_step_4_generate_report(self, price_df: pd.DataFrame):
         """
-        执行第四步：使用 evaluate_signals 评估交易信号。
-        注意：当前假设信号文件 'output/trade_advice_unified_results_one.csv' 已存在。
-        参数: price_df: 第一步获取的价格 DataFrame
-        返回: {"success": bool, "report": dict | None, "error": str | None}
-              report 字典包含评估结果 (total_trades, total_profit, etc.)
+        Execute Step 4: Evaluate trading signals using evaluate_signals.
+        Note: Currently assumes the signal file 'output/trade_advice_unified_results_one.csv' exists.
+        Args: price_df: Price DataFrame obtained from Step 1
+        Returns: {"success": bool, "report": dict | None, "error": str | None}
+               The report dictionary contains evaluation results (total_trades, total_profit, etc.)
         """
         if not evaluate_signals:
             return {
                 "success": False,
                 "report": None,
-                "error": "评估信号的函数 (evaluate_signals) 未能成功导入。",
+                "error": "The function to evaluate signals (evaluate_signals) could not be imported successfully.",
             }
         if price_df is None or not isinstance(price_df, pd.DataFrame) or price_df.empty:
             return {
                 "success": False,
                 "report": None,
-                "error": "错误：未提供有效的价格 DataFrame 用于评估。",
+                "error": "Error: No valid price DataFrame provided for evaluation.",
             }
 
         signals_path = "output/trade_advice_unified_results_one.csv"
-        # 需要一个临时的价格文件路径
+        # Need a temporary price file path
         temp_prices_path = os.path.join(OUTPUT_DIR, "temp_prices_for_eval.csv")
 
         try:
-            # 检查信号文件是否存在
+            # Check if the signal file exists
             if not os.path.exists(signals_path):
                 return {
                     "success": False,
                     "report": None,
-                    "error": f"信号文件未找到: {signals_path}",
+                    "error": f"Signal file not found: {signals_path}",
                 }
 
-            # 保存价格 DataFrame 到临时文件
+            # Save the price DataFrame to a temporary file
             logger.info(
                 f"Pipeline: Saving price data to temporary file: {temp_prices_path}"
             )
             price_df.to_csv(temp_prices_path, index=False)
 
-            # 调用评估函数
+            # Call the evaluation function
             logger.info(
                 f"Pipeline: Calling evaluate_signals with signals='{signals_path}' and prices='{temp_prices_path}'..."
             )
@@ -316,25 +300,25 @@ class TradingAnalysisPipeline:
                 f"Pipeline: evaluate_signals returned success={evaluation_result.get('success')}"
             )
 
-            # evaluate_signals 内部已经处理了文件读取等错误，并返回了 success/error
+            # evaluate_signals internally handles file reading errors etc., and returns success/error
             if evaluation_result.get("success"):
-                # 将评估结果字典包装在 report 键下
+                # Wrap the evaluation result dictionary under the 'report' key
                 return {"success": True, "report": evaluation_result, "error": None}
             else:
-                # 直接返回 evaluate_signals 的错误信息
+                # Directly return the error message from evaluate_signals
                 return {
                     "success": False,
                     "report": None,
-                    "error": evaluation_result.get("error", "评估信号时发生未知错误。"),
+                    "error": evaluation_result.get("error", "Unknown error occurred during signal evaluation."),
                 }
 
         except Exception as e:
-            # 捕获保存临时文件或调用评估函数时的意外错误
-            error_msg = f"执行评估步骤时出错：\n{e}"
+            # Catch unexpected errors when saving the temporary file or calling the evaluation function
+            error_msg = f"Error executing evaluation step:\n{e}"
             logger.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "report": None, "error": error_msg}
         finally:
-            # 清理临时价格文件
+            # Clean up the temporary price file
             if os.path.exists(temp_prices_path):
                 try:
                     os.remove(temp_prices_path)
@@ -348,4 +332,4 @@ class TradingAnalysisPipeline:
 
 
 # --- Helper functions (if needed) ---
-# 例如，用于读取文件或处理数据的辅助函数可以放在这里
+# e.g., helper functions for reading files or processing data can be placed here

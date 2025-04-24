@@ -24,9 +24,5 @@ uv.lock
 logs/
 .gradio/
 
-<<<<<<< HEAD
-.DS_Store
-=======
 .DS_Store
 .roo/
->>>>>>> 62ba0cab244184c3a94aa293bc4d70fd2b9fd246

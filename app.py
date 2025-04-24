@@ -2,140 +2,141 @@ import os
 
 import gradio as gr
 import pandas as pd
-from chatbuy.logger import log # 导入日志记录器
 
-# --- 导入 Pipeline ---
+from chatbuy.logger import log
+
+# --- Import Pipeline ---
 try:
     from chatbuy.core.pipeline import TradingAnalysisPipeline
 except ImportError as e:
-    log.error(f"错误：无法导入 TradingAnalysisPipeline", exc_info=True) # 使用 log.error
-    # 在 Gradio 中，我们不能像 Streamlit 那样直接停止应用，
-    # 但可以在界面上显示错误信息。
-    pipeline_import_error = f"无法导入核心处理模块: {e}"
-    pipeline = None  # 设置为 None 以便后续检查
+    log.error(f"Error: Failed to import TradingAnalysisPipeline", exc_info=True) # Use log.error
+    # In Gradio, we can't stop the app directly like in Streamlit,
+    # but we can display an error message in the interface.
+    pipeline_import_error = f"Failed to import core processing module: {e}"
+    pipeline = None  # Set to None for later checks
 else:
     pipeline_import_error = None
-    # --- 初始化 Pipeline ---
-    # Gradio 应用通常在启动时初始化一次
+    # --- Initialize Pipeline ---
+    # Gradio apps are typically initialized once on startup
     pipeline = TradingAnalysisPipeline()
 
-# --- Gradio 应用 ---
+# --- Gradio App ---
 
 
 def create_gradio_app():
-    """创建 Gradio 应用界面和逻辑."""
+    """Create the Gradio application interface and logic."""
     if pipeline is None:
         with gr.Blocks() as app:
-            gr.Markdown("# 交易策略分析流程 (Pipeline 版)")
-            gr.Error(f"应用初始化失败: {pipeline_import_error}")
+            gr.Markdown("# Trading Strategy Analysis Pipeline (Pipeline Version)")
+            gr.Error(f"Application initialization failed: {pipeline_import_error}")
         return app
 
-    with gr.Blocks(title="交易策略分析流程") as app:
-        gr.Markdown("# 交易策略分析流程 (Pipeline 版)")
+    with gr.Blocks(title="Trading Strategy Analysis Pipeline") as app:
+        gr.Markdown("# Trading Strategy Analysis Pipeline (Pipeline Version)")
 
-        # --- 状态管理 (使用 gr.State) ---
+        # --- State Management (using gr.State) ---
         data_result_state = gr.State(None)
         image_path_state = gr.State(None)
         analysis_result_state = gr.State(None)
         report_content_state = gr.State(None)
-        # 状态标志 (虽然 Gradio 的流程控制不同，但保留可能有用)
+        # State flags (might be useful although Gradio's flow control differs)
         data_fetched_state = gr.State(False)
         image_generated_state = gr.State(False)
         analysis_done_state = gr.State(False)
         report_generated_state = gr.State(False)
 
-        # --- 步骤一：获取K线数据 ---
-        with gr.Tab("第一步：获取数据"):
+        # --- Step 1: Fetch Candlestick Data ---
+        with gr.Tab("Step 1: Fetch Data"):
             with gr.Row():
-                fetch_button = gr.Button("获取数据", variant="primary")
+                fetch_button = gr.Button("Fetch Data", variant="primary")
                 fetch_status = gr.Textbox(
-                    "点击按钮开始获取数据...", label="状态", interactive=False
+                    "Click the button to start fetching data...", label="Status", interactive=False
                 )
-            fetch_output_df = gr.DataFrame(label="数据预览 (前5行)", visible=False)
+            fetch_output_df = gr.DataFrame(label="Data Preview (first 5 rows)", visible=False)
             fetch_output_path = gr.Textbox(
-                label="数据文件路径", visible=False, interactive=False
+                label="Data File Path", visible=False, interactive=False
             )
 
             def run_fetch_data():
                 status_update = gr.update(
-                    value="正在调用 Pipeline 获取数据...", interactive=False
+                    value="Calling Pipeline to fetch data...", interactive=False
                 )
                 df_update = gr.update(visible=False)
                 path_update = gr.update(visible=False)
-                next_button_update = gr.update(interactive=False)  # 禁用下一步按钮
-                report_button_update = gr.update(interactive=False)  # 禁用报告按钮
+                next_button_update = gr.update(interactive=False)  # Disable the next button
+                report_button_update = gr.update(interactive=False)  # Disable the report button
 
                 pipeline_result = pipeline.run_step_1_fetch_data()
 
                 if pipeline_result["success"]:
                     result = pipeline_result["result"]
                     data_fetched = True
-                    status_update = gr.update(value="数据获取成功！", interactive=False)
-                    next_button_update = gr.update(interactive=True)  # 启用生成图片按钮
-                    report_button_update = gr.update(interactive=True)  # 启用报告按钮
+                    status_update = gr.update(value="Data fetched successfully!", interactive=False)
+                    next_button_update = gr.update(interactive=True)  # Enable the generate image button
+                    report_button_update = gr.update(interactive=True)  # Enable the report button
 
                     if isinstance(result, pd.DataFrame):
                         df_update = gr.update(value=result.head(), visible=True)
                         path_update = gr.update(visible=False)
-                        data_result = result  # 直接存储 DataFrame
+                        data_result = result  # Store DataFrame directly
                     elif isinstance(result, str) and os.path.exists(result):
                         path_update = gr.update(
-                            value=f"数据已保存到: {result}", visible=True
+                            value=f"Data saved to: {result}", visible=True
                         )
                         try:
                             df_update = gr.update(
                                 value=pd.read_csv(result).head(), visible=True
                             )
                         except Exception as e:
-                            log.warning("数据获取成功，但预览失败", exc_info=True) # 添加日志
+                            log.warning("Data fetched successfully, but preview failed", exc_info=True) # Add log
                             status_update = gr.update(
-                                value=f"数据获取成功，但预览失败: {e}",
+                                value=f"Data fetched successfully, but preview failed: {e}",
                                 interactive=False,
                             )
-                        data_result = result  # 存储文件路径
+                        data_result = result  # Store file path
                     else:
                         status_update = gr.update(
-                            value=f"数据获取成功，函数返回: {result}", interactive=False
+                            value=f"Data fetched successfully, function returned: {result}", interactive=False
                         )
-                        data_result = result  # 存储其他类型结果
+                        data_result = result  # Store other result types
                 else:
                     data_fetched = False
-                    log.error(f"数据获取失败：{pipeline_result['error']}") # 添加日志
+                    log.error(f"Data fetch failed: {pipeline_result['error']}") # Add log
                     status_update = gr.update(
-                        value=f"数据获取失败：\n{pipeline_result['error']}",
+                        value=f"Data fetch failed:\n{pipeline_result['error']}",
                         interactive=False,
                     )
                     data_result = None
 
-                # 返回所有需要更新的组件和状态
+                # Return all components and states that need updating
                 return (
                     status_update,
                     df_update,
                     path_update,
-                    data_result,  # 更新 data_result_state
-                    data_fetched,  # 更新 data_fetched_state
-                    next_button_update,  # 更新生成图片按钮状态
-                    report_button_update,  # 更新报告按钮状态
+                    data_result,  # Update data_result_state
+                    data_fetched,  # Update data_fetched_state
+                    next_button_update,  # Update generate image button state
+                    report_button_update,  # Update report button state
                 )
 
-        # --- 步骤二：生成K线图片 ---
-        with gr.Tab("第二步：生成图片"):
+        # --- Step 2: Generate Candlestick Image ---
+        with gr.Tab("Step 2: Generate Image"):
             with gr.Row():
                 generate_image_button = gr.Button(
-                    "生成图片", variant="primary", interactive=False
-                )  # 初始禁用
+                    "Generate Image", variant="primary", interactive=False
+                )  # Initially disabled
                 image_status = gr.Textbox(
-                    "请先完成第一步获取数据。", label="状态", interactive=False
+                    "Please complete Step 1 (Fetch Data) first.", label="Status", interactive=False
                 )
             generated_image = gr.Image(
-                label="生成的K线图", type="filepath", visible=False
+                label="Generated Candlestick Chart", type="filepath", visible=False
             )
 
             def run_generate_image(current_data_result, is_data_fetched):
                 if not is_data_fetched:
-                    log.warning("需要先获取数据才能生成图片") # 添加日志
+                    log.warning("Need to fetch data before generating image") # Add log
                     return (
-                        gr.update(value="错误：需要先获取数据。", interactive=False),
+                        gr.update(value="Error: Need to fetch data first.", interactive=False),
                         gr.update(visible=False),
                         None,  # image_path_state
                         False,  # image_generated_state
@@ -143,10 +144,10 @@ def create_gradio_app():
                     )
 
                 status_update = gr.update(
-                    value="正在调用 Pipeline 生成图片...", interactive=False
+                    value="Calling Pipeline to generate image...", interactive=False
                 )
                 image_update = gr.update(visible=False)
-                next_button_update = gr.update(interactive=False)  # 禁用下一步按钮
+                next_button_update = gr.update(interactive=False)  # Disable the next button
 
                 pipeline_result = pipeline.run_step_2_generate_image(
                     current_data_result
@@ -155,51 +156,51 @@ def create_gradio_app():
                 if pipeline_result["success"]:
                     image_path = pipeline_result["image_path"]
                     image_generated = True
-                    status_update = gr.update(value="图片生成成功！", interactive=False)
+                    status_update = gr.update(value="Image generated successfully!", interactive=False)
                     image_update = gr.update(value=image_path, visible=True)
-                    next_button_update = gr.update(interactive=True)  # 启用下一步按钮
+                    next_button_update = gr.update(interactive=True)  # Enable the next button
                 else:
                     image_path = None
                     image_generated = False
-                    log.error(f"图片生成失败：{pipeline_result['error']}") # 添加日志
+                    log.error(f"Image generation failed: {pipeline_result['error']}") # Add log
                     status_update = gr.update(
-                        value=f"图片生成失败：\n{pipeline_result['error']}",
+                        value=f"Image generation failed:\n{pipeline_result['error']}",
                         interactive=False,
                     )
 
                 return (
                     status_update,
                     image_update,
-                    image_path,  # 更新 image_path_state
-                    image_generated,  # 更新 image_generated_state
-                    next_button_update,  # 更新 AI 分析按钮状态
+                    image_path,  # Update image_path_state
+                    image_generated,  # Update image_generated_state
+                    next_button_update,  # Update AI analysis button state
                 )
 
-        # --- 步骤三：AI分析买卖点 ---
-        with gr.Tab("第三步：AI分析"):
+        # --- Step 3: AI Analysis for Buy/Sell Points ---
+        with gr.Tab("Step 3: AI Analysis"):
             with gr.Row():
                 analyze_button = gr.Button(
-                    "AI分析", variant="primary", interactive=False
-                )  # 初始禁用
+                    "AI Analysis", variant="primary", interactive=False
+                )  # Initially disabled
                 analyze_status = gr.Textbox(
-                    "请先完成第二步生成图片。", label="状态", interactive=False
+                    "Please complete Step 2 (Generate Image) first.", label="Status", interactive=False
                 )
             with gr.Row():
                 analysis_action = gr.Textbox(
-                    label="建议操作", interactive=False, visible=False
+                    label="Suggested Action", interactive=False, visible=False
                 )
                 analysis_reason = gr.Textbox(
-                    label="原因", interactive=False, visible=False
+                    label="Reason", interactive=False, visible=False
                 )
             analysis_raw_output = gr.Textbox(
-                label="原始输出 (如果非预期格式)", interactive=False, visible=False
+                label="Raw Output (if unexpected format)", interactive=False, visible=False
             )
 
             def run_ai_analysis(current_image_path, is_image_generated):
                 if not is_image_generated:
-                    log.warning("需要先生成图片才能进行AI分析") # 添加日志
+                    log.warning("Need to generate image before AI analysis") # Add log
                     return (
-                        gr.update(value="错误：需要先生成图片。", interactive=False),
+                        gr.update(value="Error: Need to generate image first.", interactive=False),
                         gr.update(visible=False),
                         gr.update(visible=False),
                         gr.update(visible=False),
@@ -207,10 +208,10 @@ def create_gradio_app():
                         False,  # analysis_done_state
                     )
                 if not current_image_path:
-                    log.error("无法找到用于AI分析的图片路径") # 添加日志
+                    log.error("Could not find image path for AI analysis") # Add log
                     return (
                         gr.update(
-                            value="错误：无法找到用于AI分析的图片路径。",
+                            value="Error: Could not find image path for AI analysis.",
                             interactive=False,
                         ),
                         gr.update(visible=False),
@@ -221,7 +222,7 @@ def create_gradio_app():
                     )
 
                 status_update = gr.update(
-                    value="正在调用 Pipeline 进行AI分析...", interactive=False
+                    value="Calling Pipeline for AI analysis...", interactive=False
                 )
                 action_update = gr.update(visible=False)
                 reason_update = gr.update(visible=False)
@@ -234,10 +235,10 @@ def create_gradio_app():
                 if pipeline_result["success"]:
                     analysis_result = pipeline_result["result"]
                     analysis_done = True
-                    status_update = gr.update(value="AI分析成功！", interactive=False)
+                    status_update = gr.update(value="AI analysis successful!", interactive=False)
 
-                    # 假设 trade_advice 是 und_img.TradeAdvice 的实例或类似结构
-                    # Gradio 的 Textbox 输入需要是字符串
+                    # Assume trade_advice is an instance of und_img.TradeAdvice or similar structure
+                    # Gradio Textbox input needs to be a string
                     if hasattr(analysis_result, "action") and hasattr(
                         analysis_result, "reason"
                     ):
@@ -249,9 +250,9 @@ def create_gradio_app():
                         )
                         raw_update = gr.update(visible=False)
                     else:
-                        log.warning(f"AI 返回了非预期的结果: {analysis_result}") # 添加日志
+                        log.warning(f"AI returned an unexpected result: {analysis_result}") # Add log
                         raw_update = gr.update(
-                            value=f"AI 返回了非预期的结果: {analysis_result}",
+                            value=f"AI returned an unexpected result: {analysis_result}",
                             visible=True,
                         )
                         action_update = gr.update(visible=False)
@@ -260,9 +261,9 @@ def create_gradio_app():
                 else:
                     analysis_result = None
                     analysis_done = False
-                    log.error(f"AI分析失败：{pipeline_result['error']}") # 添加日志
+                    log.error(f"AI analysis failed: {pipeline_result['error']}") # Add log
                     status_update = gr.update(
-                        value=f"AI分析失败：\n{pipeline_result['error']}",
+                        value=f"AI analysis failed:\n{pipeline_result['error']}",
                         interactive=False,
                     )
                     action_update = gr.update(visible=False)
@@ -274,25 +275,25 @@ def create_gradio_app():
                     action_update,
                     reason_update,
                     raw_update,
-                    analysis_result,  # 更新 analysis_result_state
-                    analysis_done,  # 更新 analysis_done_state
+                    analysis_result,  # Update analysis_result_state
+                    analysis_done,  # Update analysis_done_state
                 )
 
-        # --- 步骤四：生成评估报告 ---
-        with gr.Tab("第四步：生成报告"):
+        # --- Step 4: Generate Evaluation Report ---
+        with gr.Tab("Step 4: Generate Report"):
             with gr.Row():
                 report_button = gr.Button(
-                    "生成评估报告", variant="primary", interactive=False
-                )  # 初始禁用
+                    "Generate Evaluation Report", variant="primary", interactive=False
+                )  # Initially disabled
                 report_status = gr.Textbox(
-                    "请先完成第一步获取数据。", label="状态", interactive=False
+                    "Please complete Step 1 (Fetch Data) first.", label="Status", interactive=False
                 )
             with gr.Row(visible=False) as report_metrics_row:
-                report_trades = gr.Number(label="总交易次数", interactive=False)
-                report_profit = gr.Number(label="总收益", interactive=False)
-                report_win_rate = gr.Number(label="胜率 (%)", interactive=False)
-                report_avg_profit = gr.Number(label="平均单笔收益", interactive=False)
-            report_details_df = gr.DataFrame(label="交易明细", visible=False)
+                report_trades = gr.Number(label="Total Trades", interactive=False)
+                report_profit = gr.Number(label="Total Profit", interactive=False)
+                report_win_rate = gr.Number(label="Win Rate (%)", interactive=False)
+                report_avg_profit = gr.Number(label="Average Profit per Trade", interactive=False)
+            report_details_df = gr.DataFrame(label="Trade Details", visible=False)
             final_message = gr.Markdown("", visible=False)
 
             def run_generate_report(current_data_result, is_data_fetched):
@@ -309,9 +310,9 @@ def create_gradio_app():
                 report_generated = False  # Default value
 
                 if not is_data_fetched:
-                    log.warning("需要先获取数据才能生成报告") # 添加日志
+                    log.warning("Need to fetch data before generating report") # Add log
                     status_update = gr.update(
-                        value="错误：需要先获取数据。", interactive=False
+                        value="Error: Need to fetch data first.", interactive=False
                     )
                     return (
                         status_update,
@@ -321,16 +322,16 @@ def create_gradio_app():
                         win_rate,
                         avg_profit,  # metrics
                         details_df_update,
-                        evaluation_data,  # report_content_state
-                        report_generated,  # report_generated_state
+                        evaluation_data,  # Update report_content_state
+                        report_generated,  # Update report_generated_state
                         final_msg_update,
                     )
 
-                # 检查数据是否为 DataFrame
+                # Check if data is a DataFrame
                 if not isinstance(current_data_result, pd.DataFrame):
-                    log.error("无法执行评估，因为第一步获取的数据不是 DataFrame") # 添加日志
+                    log.error("Cannot perform evaluation because the data fetched in Step 1 is not a DataFrame") # Add log
                     status_update = gr.update(
-                        value="错误：无法执行评估，因为第一步获取的数据不是 DataFrame。",
+                        value="Error: Cannot perform evaluation because the data fetched in Step 1 is not a DataFrame.",
                         interactive=False,
                     )
                     return (
@@ -347,7 +348,7 @@ def create_gradio_app():
                     )
 
                 status_update = gr.update(
-                    value="正在调用 Pipeline 生成评估报告...", interactive=False
+                    value="Calling Pipeline to generate evaluation report...", interactive=False
                 )
 
                 pipeline_result = pipeline.run_step_4_generate_report(
@@ -358,7 +359,7 @@ def create_gradio_app():
                     evaluation_data = pipeline_result["report"]
                     report_generated = True
                     status_update = gr.update(
-                        value="评估报告生成成功！", interactive=False
+                        value="Evaluation report generated successfully!", interactive=False
                     )
                     metrics_row_update = gr.update(visible=True)
                     details_df_update = gr.update(
@@ -369,10 +370,10 @@ def create_gradio_app():
                         visible=True,
                     )
                     final_msg_update = gr.update(
-                        value="**所有步骤已完成！** 🎉", visible=True
+                        value="**All steps completed!** 🎉", visible=True
                     )
 
-                    # 更新指标
+                    # Update metrics
                     trades = evaluation_data.get("total_trades", "N/A")
                     # Ensure metrics are numbers or handle N/A for gr.Number
                     try:
@@ -399,9 +400,9 @@ def create_gradio_app():
                 else:
                     evaluation_data = None
                     report_generated = False
-                    log.error(f"评估报告生成失败：{pipeline_result['error']}") # 添加日志
+                    log.error(f"Evaluation report generation failed: {pipeline_result['error']}") # Add log
                     status_update = gr.update(
-                        value=f"评估报告生成失败：\n{pipeline_result['error']}",
+                        value=f"Evaluation report generation failed:\n{pipeline_result['error']}",
                         interactive=False,
                     )
                     metrics_row_update = gr.update(visible=False)
@@ -416,12 +417,12 @@ def create_gradio_app():
                     win_rate,
                     avg_profit,  # metrics
                     details_df_update,
-                    evaluation_data,  # 更新 report_content_state
-                    report_generated,  # 更新 report_generated_state
+                    evaluation_data,  # Update report_content_state
+                    report_generated,  # Update report_generated_state
                     final_msg_update,
                 )
 
-        # --- 连接按钮和函数 ---
+        # --- Connect Buttons and Functions ---
         fetch_button.click(
             fn=run_fetch_data,
             inputs=[],
@@ -431,8 +432,8 @@ def create_gradio_app():
                 fetch_output_path,
                 data_result_state,
                 data_fetched_state,
-                generate_image_button,  # 更新按钮状态
-                report_button,  # 更新报告按钮状态 (也依赖第一步)
+                generate_image_button,  # Update button state
+                report_button,  # Update report button state (also depends on Step 1)
             ],
         )
 
@@ -444,7 +445,7 @@ def create_gradio_app():
                 generated_image,
                 image_path_state,
                 image_generated_state,
-                analyze_button,  # 更新按钮状态
+                analyze_button,  # Update button state
             ],
         )
 
@@ -481,7 +482,7 @@ def create_gradio_app():
     return app
 
 
-# --- 主程序入口 ---
+# --- Main Program Entry Point ---
 if __name__ == "__main__":
     gradio_app = create_gradio_app()
     gradio_app.launch(share=False)
