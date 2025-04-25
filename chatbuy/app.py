@@ -1,3 +1,4 @@
+import datetime  # Make sure datetime import is at the top level
 import os
 
 import gradio as gr
@@ -45,18 +46,20 @@ def create_gradio_app():
                     label="Timeframe (K线周期)",
                     interactive=True,
                 )
-                # 常用日期选项
-                import datetime
-
+                # 使用普通的 Textbox 组件代替 DateTime 组件
                 today = datetime.date.today()
-                # 使用 Gradio 5.25+ 的 DateTime 组件来代替 Textbox
-                start_date_input = gr.DateTime(
-                    label="起始时间",
-                    value=(today - datetime.timedelta(days=365)),
+                default_start_date = (today - datetime.timedelta(days=365)).strftime("%Y-%m-%d")
+                default_end_date = today.strftime("%Y-%m-%d")
+                
+                start_date_input = gr.Textbox(
+                    label="起始时间 (YYYY-MM-DD)",
+                    value=default_start_date,
+                    placeholder="例如: 2023-01-01"
                 )
-                end_date_input = gr.DateTime(
-                    label="结束时间",
-                    value=today,
+                end_date_input = gr.Textbox(
+                    label="结束时间 (YYYY-MM-DD)",
+                    value=default_end_date,
+                    placeholder="例如: 2024-01-01"
                 )
             with gr.Row():
                 fetch_button = gr.Button("Fetch Data", variant="primary")
@@ -85,24 +88,22 @@ def create_gradio_app():
                     interactive=False
                 )  # Disable the report button
 
-                # DateTime component returns datetime objects directly
+                # Process the text date inputs
                 try:
-                    # Verification and conversion if needed
-                    if start_date is not None:
-                        # DateTime component already returns a datetime object
-                        start_dt = start_date
+                    # Convert string dates to datetime objects
+                    if start_date:
+                        start_dt = datetime.datetime.strptime(start_date, "%Y-%m-%d")
                     else:
                         raise ValueError("Start date is required")
                         
-                    if end_date is not None:
-                        # DateTime component already returns a datetime object
-                        end_dt = end_date
+                    if end_date:
+                        end_dt = datetime.datetime.strptime(end_date, "%Y-%m-%d")
                     else:
                         end_dt = None
                 except Exception as e:
                     log.error(f"Error processing date inputs: {e}")
                     return (
-                        gr.update(value=f"错误：日期处理失败。详情: {e}", interactive=False), 
+                        gr.update(value=f"错误：日期格式错误。请使用YYYY-MM-DD格式。详情: {e}", interactive=False), 
                         gr.update(visible=False), 
                         gr.update(visible=False), 
                         None, 
