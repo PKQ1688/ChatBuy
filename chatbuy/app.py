@@ -136,7 +136,7 @@ def create_gradio_app():
                     )  # Enable the report button
 
                     if isinstance(result, pd.DataFrame):
-                        df_update = gr.update(value=result.head(), visible=True)
+                        df_update = gr.update(value=result.tail(), visible=True)
                         path_update = gr.update(visible=False)
                         data_result = result  # Store DataFrame directly
                     elif isinstance(result, str) and os.path.exists(result):
@@ -145,7 +145,7 @@ def create_gradio_app():
                         )
                         try:
                             df_update = gr.update(
-                                value=pd.read_csv(result).head(), visible=True
+                                value=pd.read_csv(result).tail(), visible=True
                             )
                         except Exception as e:
                             log.warning(
@@ -189,23 +189,43 @@ def create_gradio_app():
         with gr.Tab("Step 2: Generate Image"):
             with gr.Row():
                 generate_image_button = gr.Button(
-                    "Generate Image", variant="primary", interactive=False
+                    "Generate Images", variant="primary", interactive=False
                 )  # Initially disabled
                 image_status = gr.Textbox(
                     "Please complete Step 1 (Fetch Data) first.",
                     label="Status",
                     interactive=False,
                 )
-            generated_image = gr.Image(
-                label="Generated Candlestick Chart", type="filepath", visible=False
+            
+            with gr.Row():
+                length_input = gr.Slider(
+                    minimum=30, maximum=200, step=10, value=120, 
+                    label="Candlesticks per image (length)", interactive=True
+                )
+                step_input = gr.Slider(
+                    minimum=1, maximum=20, step=1, value=1, 
+                    label="Sliding window step size", interactive=True
+                )
+            
+            with gr.Row():
+                filename_prefix = gr.Textbox(
+                    value="chart", label="Filename prefix", interactive=True
+                )
+                output_dir = gr.Textbox(
+                    value="output/batch_images", label="Output directory", interactive=True
+                )
+            
+            generation_result = gr.Markdown("", visible=False)
+            sample_image = gr.Image(
+                label="Sample Generated Image", type="filepath", visible=False
             )
 
-            def run_generate_image(current_data_result, is_data_fetched):
+            def run_generate_image(current_data_result, is_data_fetched, length, step, output_folder, prefix):
                 if not is_data_fetched:
-                    log.warning("Need to fetch data before generating image")  # Add log
+                    log.warning("Need to fetch data before generating image")
                     return (
                         gr.update(
-                            value="Error: Need to fetch data first.", interactive=False
+                            value="错误: 请先获取数据", interactive=False
                         ),
                         gr.update(visible=False),
                         None,  # image_path_state
@@ -214,45 +234,80 @@ def create_gradio_app():
                     )
 
                 status_update = gr.update(
-                    value="Calling Pipeline to generate image...", interactive=False
+                    value="正在批量生成图表...", interactive=False
                 )
-                image_update = gr.update(visible=False)
-                next_button_update = gr.update(
-                    interactive=False
-                )  # Disable the next button
-
-                pipeline_result = pipeline.run_step_2_generate_image(
-                    current_data_result
+                
+                # Make sure output directory exists
+                os.makedirs(output_folder, exist_ok=True)
+                
+                # Call batch generation function
+                pipeline_result = pipeline.run_step_2_generate_images_batch(
+                    data_input=current_data_result,
+                    output_dir=output_folder,
+                    length=length,
+                    step=step,
+                    filename_prefix=prefix
                 )
 
                 if pipeline_result["success"]:
-                    image_path = pipeline_result["image_path"]
                     image_generated = True
+                    
+                    # Find first image to display as sample
+                    sample_img_path = None
+                    try:
+                        files = [f for f in os.listdir(output_folder) if f.endswith('.png')]
+                        if files:
+                            sample_img_path = os.path.join(output_folder, files[0])
+                    except Exception as e:
+                        log.warning(f"Failed to find sample image: {e}")
+                    
                     status_update = gr.update(
-                        value="Image generated successfully!", interactive=False
+                        value=f"成功生成 {pipeline_result['count']} 张图表! 保存至: {output_folder}", 
+                        interactive=False
                     )
-                    image_update = gr.update(value=image_path, visible=True)
-                    next_button_update = gr.update(
-                        interactive=True
-                    )  # Enable the next button
+                    
+                    image_update = gr.update(
+                        value=sample_img_path if sample_img_path else None, 
+                        visible=True if sample_img_path else False
+                    )
+                    
+                    result_markdown = f"""
+### 批量图表生成结果
+- **总计图表数**: {pipeline_result['count']} 张
+- **保存路径**: {output_folder}
+- **每张图表K线数**: {length}
+- **滑动窗口步长**: {step}
+                    """
+                    
+                    next_button_update = gr.update(interactive=True)  # Enable the next button
+                    
+                    return (
+                        status_update,
+                        image_update,
+                        result_markdown,  # Update result markdown
+                        True,  # Enable visibility
+                        sample_img_path,  # Update image_path_state (first image as sample)
+                        image_generated,  # Update image_generated_state
+                        next_button_update,  # Update AI analysis button state
+                    )
                 else:
                     image_path = None
                     image_generated = False
-                    log.error(
-                        f"Image generation failed: {pipeline_result['error']}"
-                    )  # Add log
+                    log.error(f"Image generation failed: {pipeline_result['error']}")
                     status_update = gr.update(
-                        value=f"Image generation failed:\n{pipeline_result['error']}",
+                        value=f"图表生成失败:\n{pipeline_result['error']}",
                         interactive=False,
                     )
-
-                return (
-                    status_update,
-                    image_update,
-                    image_path,  # Update image_path_state
-                    image_generated,  # Update image_generated_state
-                    next_button_update,  # Update AI analysis button state
-                )
+                    
+                    return (
+                        status_update,
+                        gr.update(visible=False),
+                        "",  # Empty markdown
+                        False,  # Hide markdown
+                        None,  # Update image_path_state
+                        False,  # Update image_generated_state
+                        gr.update(interactive=False),  # Update AI analysis button state
+                    )
 
         # --- Step 3: AI Analysis for Buy/Sell Points ---
         with gr.Tab("Step 3: AI Analysis"):
@@ -547,10 +602,12 @@ def create_gradio_app():
 
         generate_image_button.click(
             fn=run_generate_image,
-            inputs=[data_result_state, data_fetched_state],
+            inputs=[data_result_state, data_fetched_state, length_input, step_input, output_dir, filename_prefix],
             outputs=[
                 image_status,
-                generated_image,
+                sample_image,
+                generation_result,
+                generation_result,  # 用 markdown 组件对象替换 gr.update(visible=True)
                 image_path_state,
                 image_generated_state,
                 analyze_button,  # Update button state

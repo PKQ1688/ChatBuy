@@ -17,6 +17,8 @@ venv/
 
 poetry.lock
 data/
+output/
+
 .ruff_cache/
 uv.lock
 

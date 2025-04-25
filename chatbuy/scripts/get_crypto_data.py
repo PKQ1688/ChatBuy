@@ -3,6 +3,7 @@ import time
 
 import ccxt
 import pandas as pd
+from talipp.indicators import BB, MACD
 
 # Initialize Binance client
 exchange = ccxt.binance({"rateLimit": 1200, "enableRateLimit": True})
@@ -24,22 +25,25 @@ def fetch_historical_data(symbol, timeframe, start_date, limit=1000, max_retries
 
     while True:
         try:
+            # print(f"Requesting: symbol={symbol}, timeframe={timeframe}, since={since}, limit={limit}")
             ohlcv = exchange.fetch_ohlcv(symbol, timeframe, since=since, limit=limit)
+            # print(f"Raw ohlcv response: {ohlcv}")
             if not ohlcv:
+                print("No data returned from fetch_ohlcv, breaking loop.")
                 break
             all_data.extend(ohlcv)
             since = ohlcv[-1][0] + 1  # Start next batch from the latest time
-            print(f"Fetched {len(ohlcv)} rows. Current timestamp: {ohlcv[-1][0]}")
+            # print(f"Fetched {len(ohlcv)} rows. Current timestamp: {ohlcv[-1][0]}")
             time.sleep(exchange.rateLimit / 1000)  # Avoid rate limit
             retries = 0  # Reset retries after a successful fetch
         except Exception as e:
             print(f"Error fetching data: {e}")
             retries += 1
             if retries > max_retries:
-                print("Max retries reached. Exiting.")
+                # print("Max retries reached. Exiting.")
                 break
-            sleep_time = min(2 ** retries, 60)  # Exponential backoff with a cap
-            print(f"Retrying in {sleep_time} seconds...")
+            sleep_time = min(2**retries, 60)  # Exponential backoff with a cap
+            # print(f"Retrying in {sleep_time} seconds...")
             time.sleep(sleep_time)
 
     # Convert to DataFrame
@@ -65,13 +69,31 @@ def main(symbol="BTC", timeframe="1d", start_date="2017-07-01T00:00:00Z"):
 
     df = fetch_historical_data(symbol_pair, timeframe, start_date)
 
+    # 计算技术指标
+    macd = MACD(12, 26, 9, df["close"])[:]
+    bb = BB(20, 2, df["close"])[:]
+
+    for index, row in df.iterrows():
+        if macd[index] is not None:
+            df.at[index, "macd"] = macd[index].macd
+            df.at[index, "signal"] = macd[index].signal
+            df.at[index, "histogram"] = macd[index].histogram
+
+        if bb[index] is not None:
+            df.at[index, "bb_upper"] = bb[index].ub
+            df.at[index, "bb_middle"] = bb[index].cb
+            df.at[index, "bb_lower"] = bb[index].lb
+
+    df = df.infer_objects(copy=False)
+    df.fillna(0, inplace=True)
+
     # Create data directory if it doesn't exist
     if not os.path.exists("data"):
         os.makedirs("data")
 
-    # Save as CSV file
-    df.to_csv(f"data/{symbol}_USDT_{timeframe}.csv", index=False)
-    print(f"History data is stored in {symbol}_USDT_{timeframe}.csv")
+    # 保存包含指标的CSV文件
+    df.to_csv(f"data/{symbol}_USDT_{timeframe}_with_indicators.csv", index=False)
+    print(f"History data with indicators is stored in data/{symbol}_USDT_{timeframe}_with_indicators.csv")
 
 
 if __name__ == "__main__":

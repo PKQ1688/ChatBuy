@@ -3,7 +3,7 @@ import os
 import pandas as pd
 from scripts.get_crypto_data import fetch_historical_data
 
-from chatbuy.core.evaluate_trade_signals import evaluate_signals
+# from chatbuy.core.evaluate_trade_signals import evaluate_signals
 from chatbuy.core.und_img import TradePipeline as UndImgTradePipeline
 from chatbuy.core.visualize_indicators import IndicatorVisualizer
 from chatbuy.logger import log
@@ -75,12 +75,24 @@ class TradingAnalysisPipeline:
             end_date = kwargs.get("end_date", None)
 
             # 生成唯一缓存文件名
-            def safe_str(s):
-                return str(s).replace("/", "_").replace(":", "-")
+            from datetime import datetime
 
-            cache_key = f"{safe_str(symbol)}_{safe_str(timeframe)}_{safe_str(start_date)}"
+            def safe_str(s, only_date=False):
+                s = str(s).replace("/", "_").replace(":", "-")
+                if only_date:
+                    # 只保留到日，优先直接截取前10位
+                    if len(s) >= 10:
+                        return s[:10]
+                    try:
+                        dt = datetime.fromisoformat(s.replace("Z", ""))
+                        return dt.strftime("%Y-%m-%d")
+                    except Exception:
+                        log.error(f"Failed to parse date string: {s}")
+                return s
+
+            cache_key = f"{safe_str(symbol)}_{safe_str(timeframe)}_{safe_str(start_date, only_date=True)}"
             if end_date:
-                cache_key += f"_{safe_str(end_date)}"
+                cache_key += f"_{safe_str(end_date, only_date=True)}"
             # 防止文件名过长
             cache_hash = hashlib.md5(cache_key.encode("utf-8")).hexdigest()
             cache_file = os.path.join(CACHE_SUBDIR, f"{cache_key}_{cache_hash}.csv")
@@ -98,7 +110,9 @@ class TradingAnalysisPipeline:
                     else:
                         log.warning(f"Cached file {cache_file} is empty, will refetch.")
                 except Exception as e:
-                    log.warning(f"Failed to read cache file {cache_file}: {e}, will refetch.")
+                    log.warning(
+                        f"Failed to read cache file {cache_file}: {e}, will refetch."
+                    )
 
             # 获取数据
             log.info(
@@ -109,15 +123,38 @@ class TradingAnalysisPipeline:
             )
             # end_date 过滤
             if end_date and isinstance(result_df, pd.DataFrame):
-                result_df = result_df[result_df["timestamp"] <= pd.to_datetime(end_date)]
+                result_df = result_df[
+                    result_df["timestamp"] <= pd.to_datetime(end_date)
+                ]
 
             log.info(
                 f"Pipeline: fetch_historical_data returned type: {type(result_df)}"
             )
 
             if isinstance(result_df, pd.DataFrame) and not result_df.empty:
+                # 计算技术指标
+                try:
+                    from talipp.indicators import BB, MACD
+
+                    macd = MACD(12, 26, 9, result_df["close"])[:]
+                    bb = BB(20, 2, result_df["close"])[:]
+                    for index, row in result_df.iterrows():
+                        if macd[index] is not None:
+                            result_df.at[index, "macd"] = macd[index].macd
+                            result_df.at[index, "signal"] = macd[index].signal
+                            result_df.at[index, "histogram"] = macd[index].histogram
+                        if bb[index] is not None:
+                            result_df.at[index, "bb_upper"] = bb[index].ub
+                            result_df.at[index, "bb_middle"] = bb[index].cb
+                            result_df.at[index, "bb_lower"] = bb[index].lb
+                    result_df = result_df.infer_objects(copy=False)
+                    result_df.fillna(0, inplace=True)
+                except Exception as e:
+                    log.warning(f"Failed to calculate indicators: {e}")
+
                 # 保存到本地
                 try:
+                    os.makedirs(os.path.dirname(cache_file), exist_ok=True)
                     result_df.to_csv(cache_file, index=False)
                     log.info(f"Saved fetched data to {cache_file}")
                 except Exception as e:
@@ -220,144 +257,78 @@ class TradingAnalysisPipeline:
             log.error(f"Pipeline Error: {error_msg}")
             return {"success": False, "image_path": None, "error": error_msg}
 
-    def run_step_3_analyze_signals(self, image_path: str, strategy: str | None = None):
-        """Execute Step 3: Analyze buy/sell points using the AI Pipeline.
-
+    def run_step_2_generate_images_batch(
+        self,
+        data_input,
+        output_dir: str,
+        length: int = 120,
+        step: int = 1,
+        start_time: str = None,
+        end_time: str = None,
+        filename_prefix: str = "chart",
+    ):
+        """Batch generate candlestick images using a sliding window approach and save them to a specified folder.
+        
         Args:
-            image_path: Path to the image generated in Step 2.
-            strategy: Optional trading strategy description string.
-
+            data_input: DataFrame or path to a CSV file
+            output_dir: Output folder for the images
+            length: Number of candlesticks per image
+            step: Sliding window step size
+            start_time: Start time (optional, YYYY-MM-DD)
+            end_time: End time (optional, YYYY-MM-DD)
+            filename_prefix: Prefix for the filenames
         Returns:
-            A dictionary containing the execution status and results:
-            {"success": bool, "result": TradeAdvice | None, "error": str | None}.
+            dict: {success, output_dir, count, error}
         """
-        if not self.ai_pipeline:
-            return {
-                "success": False,
-                "result": None,
-                "error": "AI Analysis Pipeline failed to initialize successfully.",
-            }
-        if not image_path or not os.path.exists(image_path):
-            return {
-                "success": False,
-                "result": None,
-                "error": f"Error: No valid image path provided for AI analysis: {image_path}",
-            }
+        import shutil
+        import tempfile
 
+        visualizer = IndicatorVisualizer()
+        temp_csv = None
         try:
-            # Fix: Call the run_pipeline method of und_img.TradePipeline
-            log.info(
-                f"Pipeline: Calling AI Pipeline (und_img) with image: {image_path}..."
-            )
-            # If no strategy is provided, use the default strategy from und_img
-            call_args = {"image_path": image_path}
-            if strategy:
-                call_args["strategy"] = strategy
-                log.info(f"Using custom strategy: {strategy}")
+            # 判断输入类型
+            if isinstance(data_input, pd.DataFrame):
+                # 保存为临时csv
+                temp_dir = tempfile.mkdtemp()
+                temp_csv = os.path.join(temp_dir, "temp_data.csv")
+                data_input.to_csv(temp_csv, index=False)
+                data_path = temp_csv
+            elif isinstance(data_input, str) and os.path.exists(data_input):
+                data_path = data_input
             else:
-                log.info("Using default strategy from und_img.")
-
-            trade_advice = self.ai_pipeline.run_pipeline(**call_args)
-            log.info(
-                f"Pipeline: AI Pipeline returned: Action={trade_advice.action}, Reason={trade_advice.reason}"
-            )
-
-            # run_pipeline returns a TradeAdvice object on success
-            return {"success": True, "result": trade_advice, "error": None}
-        except Exception as e:
-            error_msg = f"Error calling AI Pipeline (und_img):\n{e}"
-            log.error(f"Pipeline Error: {error_msg}")
-            return {"success": False, "result": None, "error": error_msg}
-
-    def run_step_4_generate_report(self, price_df: pd.DataFrame):
-        """Execute Step 4: Evaluate trading signals using evaluate_signals.
-
-        Note:
-            Currently assumes the signal file 'output/trade_advice_unified_results_one.csv' exists.
-
-        Args:
-            price_df: Price DataFrame obtained from Step 1.
-
-        Returns:
-            A dictionary containing the execution status and report:
-            {"success": bool, "report": dict | None, "error": str | None}.
-            The report dictionary contains evaluation results (total_trades, total_profit, etc.).
-        """
-        if not evaluate_signals:
-            return {
-                "success": False,
-                "report": None,
-                "error": "The function to evaluate signals (evaluate_signals) could not be imported successfully.",
-            }
-        if price_df is None or not isinstance(price_df, pd.DataFrame) or price_df.empty:
-            return {
-                "success": False,
-                "report": None,
-                "error": "Error: No valid price DataFrame provided for evaluation.",
-            }
-
-        signals_path = "output/trade_advice_unified_results_one.csv"
-        # Need a temporary price file path
-        temp_prices_path = os.path.join(OUTPUT_DIR, "temp_prices_for_eval.csv")
-
-        try:
-            # Check if the signal file exists
-            if not os.path.exists(signals_path):
                 return {
                     "success": False,
-                    "report": None,
-                    "error": f"Signal file not found: {signals_path}",
+                    "output_dir": None,
+                    "count": 0,
+                    "error": "data_input 必须为DataFrame或有效csv路径",
                 }
 
-            # Save the price DataFrame to a temporary file
-            log.info(
-                f"Pipeline: Saving price data to temporary file: {temp_prices_path}"
+            os.makedirs(output_dir, exist_ok=True)
+            visualizer.batch_generate(
+                data_path=data_path,
+                output_dir=output_dir,
+                length=length,
+                step=step,
+                start_time=start_time,
+                end_time=end_time,
+                filename_prefix=filename_prefix,
+                show=False,
             )
-            price_df.to_csv(temp_prices_path, index=False)
-
-            # Call the evaluation function
-            log.info(
-                f"Pipeline: Calling evaluate_signals with signals='{signals_path}' and prices='{temp_prices_path}'..."
-            )
-            evaluation_result = evaluate_signals(
-                signals_path=signals_path, prices_path=temp_prices_path
-            )
-            log.info(
-                f"Pipeline: evaluate_signals returned success={evaluation_result.get('success')}"
-            )
-
-            # evaluate_signals internally handles file reading errors etc., and returns success/error
-            if evaluation_result.get("success"):
-                # Wrap the evaluation result dictionary under the 'report' key
-                return {"success": True, "report": evaluation_result, "error": None}
-            else:
-                # Directly return the error message from evaluate_signals
-                return {
-                    "success": False,
-                    "report": None,
-                    "error": evaluation_result.get(
-                        "error", "Unknown error occurred during signal evaluation."
-                    ),
-                }
-
+            # 统计生成图片数量
+            count = len([f for f in os.listdir(output_dir) if f.endswith(".png")])
+            return {
+                "success": True,
+                "output_dir": output_dir,
+                "count": count,
+                "error": None,
+            }
         except Exception as e:
-            # Catch unexpected errors when saving the temporary file or calling the evaluation function
-            error_msg = f"Error executing evaluation step:\n{e}"
-            log.error(f"Pipeline Error: {error_msg}")
-            return {"success": False, "report": None, "error": error_msg}
+            return {
+                "success": False,
+                "output_dir": output_dir,
+                "count": 0,
+                "error": str(e),
+            }
         finally:
-            # Clean up the temporary price file
-            if os.path.exists(temp_prices_path):
-                try:
-                    os.remove(temp_prices_path)
-                    log.info(
-                        f"Pipeline: Removed temporary price file: {temp_prices_path}"
-                    )
-                except Exception as e:
-                    log.warning(
-                        f"Pipeline Warning: Failed to remove temporary price file {temp_prices_path}: {e}"
-                    )
-
-
-# --- Helper functions (if needed) ---
-# e.g., helper functions for reading files or processing data can be placed here
+            if temp_csv and os.path.exists(temp_csv):
+                shutil.rmtree(os.path.dirname(temp_csv), ignore_errors=True)

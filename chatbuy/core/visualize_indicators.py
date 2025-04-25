@@ -449,28 +449,28 @@ if __name__ == "__main__":
     # --- Example 1: Generate single chart (using most recent 120 data points) ---
     print("\n--- Example 1: Generate Single Chart ---")
     DATA_FILE = "data/BTC_USDT_1d_with_indicators.csv"
-    OUTPUT_SINGLE_DIR = "output/single_chart"
-    OUTPUT_SINGLE_FILE = os.path.join(OUTPUT_SINGLE_DIR, "latest_120_days.png")
-    try:
-        df_full = pd.read_csv(DATA_FILE)
-        # Assume time column is 'date' or similar name and already sorted
-        date_col_name = visualizer._find_date_column(df_full)
-        if date_col_name:
-            df_full[date_col_name] = pd.to_datetime(df_full[date_col_name])
-            df_full = df_full.sort_values(by=date_col_name)
-        else:
-            print("Warning: Date column not found, will use last 120 rows of data.")
+    # OUTPUT_SINGLE_DIR = "output/single_chart"
+    # OUTPUT_SINGLE_FILE = os.path.join(OUTPUT_SINGLE_DIR, "latest_120_days.png")
+    # try:
+    #     df_full = pd.read_csv(DATA_FILE)
+    #     # Assume time column is 'date' or similar name and already sorted
+    #     date_col_name = visualizer._find_date_column(df_full)
+    #     if date_col_name:
+    #         df_full[date_col_name] = pd.to_datetime(df_full[date_col_name])
+    #         df_full = df_full.sort_values(by=date_col_name)
+    #     else:
+    #         print("Warning: Date column not found, will use last 120 rows of data.")
 
-        df_subset = df_full.tail(120)
-        if not df_subset.empty:
-            visualizer.visualize(df_subset, OUTPUT_SINGLE_FILE, show=False)
-        else:
-            print("Unable to get data for single chart example.")
+    #     df_subset = df_full.tail(120)
+    #     if not df_subset.empty:
+    #         visualizer.visualize(df_subset, OUTPUT_SINGLE_FILE, show=False)
+    #     else:
+    #         print("Unable to get data for single chart example.")
 
-    except FileNotFoundError:
-        print(f"Error: Data file '{DATA_FILE}' not found. Skipping Example 1.")
-    except Exception as e:
-        print(f"Error running Example 1: {e}")
+    # except FileNotFoundError:
+    #     print(f"Error: Data file '{DATA_FILE}' not found. Skipping Example 1.")
+    # except Exception as e:
+    #     print(f"Error running Example 1: {e}")
 
     # --- Example 2: Batch generate charts ---
     print("\n--- Example 2: Batch Generate Charts ---")
