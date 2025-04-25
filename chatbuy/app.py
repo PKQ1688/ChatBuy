@@ -48,18 +48,20 @@ def create_gradio_app():
                 )
                 # 使用普通的 Textbox 组件代替 DateTime 组件
                 today = datetime.date.today()
-                default_start_date = (today - datetime.timedelta(days=365)).strftime("%Y-%m-%d")
+                default_start_date = (today - datetime.timedelta(days=365)).strftime(
+                    "%Y-%m-%d"
+                )
                 default_end_date = today.strftime("%Y-%m-%d")
-                
+
                 start_date_input = gr.Textbox(
                     label="起始时间 (YYYY-MM-DD)",
                     value=default_start_date,
-                    placeholder="例如: 2023-01-01"
+                    placeholder="例如: 2023-01-01",
                 )
                 end_date_input = gr.Textbox(
                     label="结束时间 (YYYY-MM-DD)",
                     value=default_end_date,
-                    placeholder="例如: 2024-01-01"
+                    placeholder="例如: 2024-01-01",
                 )
             with gr.Row():
                 fetch_button = gr.Button("Fetch Data", variant="primary")
@@ -75,7 +77,7 @@ def create_gradio_app():
                 label="Data File Path", visible=False, interactive=False
             )
 
-            def run_fetch_data(symbol, timeframe, start_date, end_date): 
+            def run_fetch_data(symbol, timeframe, start_date, end_date):
                 status_update = gr.update(
                     value="Calling Pipeline to fetch data...", interactive=False
                 )
@@ -95,7 +97,7 @@ def create_gradio_app():
                         start_dt = datetime.datetime.strptime(start_date, "%Y-%m-%d")
                     else:
                         raise ValueError("Start date is required")
-                        
+
                     if end_date:
                         end_dt = datetime.datetime.strptime(end_date, "%Y-%m-%d")
                     else:
@@ -103,13 +105,16 @@ def create_gradio_app():
                 except Exception as e:
                     log.error(f"Error processing date inputs: {e}")
                     return (
-                        gr.update(value=f"错误：日期格式错误。请使用YYYY-MM-DD格式。详情: {e}", interactive=False), 
-                        gr.update(visible=False), 
-                        gr.update(visible=False), 
-                        None, 
-                        False, 
-                        gr.update(interactive=False), 
-                        gr.update(interactive=False), 
+                        gr.update(
+                            value=f"错误：日期格式错误。请使用YYYY-MM-DD格式。详情: {e}",
+                            interactive=False,
+                        ),
+                        gr.update(visible=False),
+                        gr.update(visible=False),
+                        None,
+                        False,
+                        gr.update(interactive=False),
+                        gr.update(interactive=False),
                     )
 
                 kwargs = {
@@ -196,37 +201,52 @@ def create_gradio_app():
                     label="Status",
                     interactive=False,
                 )
-            
+
             with gr.Row():
                 length_input = gr.Slider(
-                    minimum=30, maximum=200, step=10, value=120, 
-                    label="Candlesticks per image (length)", interactive=True
+                    minimum=30,
+                    maximum=200,
+                    step=10,
+                    value=120,
+                    label="Candlesticks per image (length)",
+                    interactive=True,
                 )
                 step_input = gr.Slider(
-                    minimum=1, maximum=20, step=1, value=1, 
-                    label="Sliding window step size", interactive=True
+                    minimum=1,
+                    maximum=20,
+                    step=1,
+                    value=1,
+                    label="Sliding window step size",
+                    interactive=True,
                 )
-            
+
             with gr.Row():
                 filename_prefix = gr.Textbox(
                     value="chart", label="Filename prefix", interactive=True
                 )
                 output_dir = gr.Textbox(
-                    value="output/batch_images", label="Output directory", interactive=True
+                    value="output/batch_images",
+                    label="Output directory",
+                    interactive=True,
                 )
-            
+
             generation_result = gr.Markdown("", visible=False)
             sample_image = gr.Image(
                 label="Sample Generated Image", type="filepath", visible=False
             )
 
-            def run_generate_image(current_data_result, is_data_fetched, length, step, output_folder, prefix):
+            def run_generate_image(
+                current_data_result,
+                is_data_fetched,
+                length,
+                step,
+                output_folder,
+                prefix,
+            ):
                 if not is_data_fetched:
                     log.warning("Need to fetch data before generating image")
                     return (
-                        gr.update(
-                            value="错误: 请先获取数据", interactive=False
-                        ),
+                        gr.update(value="错误: 请先获取数据", interactive=False),
                         gr.update(visible=False),
                         None,  # image_path_state
                         False,  # image_generated_state
@@ -236,51 +256,55 @@ def create_gradio_app():
                 status_update = gr.update(
                     value="正在批量生成图表...", interactive=False
                 )
-                
+
                 # Make sure output directory exists
                 os.makedirs(output_folder, exist_ok=True)
-                
+
                 # Call batch generation function
                 pipeline_result = pipeline.run_step_2_generate_images_batch(
                     data_input=current_data_result,
                     output_dir=output_folder,
                     length=length,
                     step=step,
-                    filename_prefix=prefix
+                    filename_prefix=prefix,
                 )
 
                 if pipeline_result["success"]:
                     image_generated = True
-                    
+
                     # Find first image to display as sample
                     sample_img_path = None
                     try:
-                        files = [f for f in os.listdir(output_folder) if f.endswith('.png')]
+                        files = [
+                            f for f in os.listdir(output_folder) if f.endswith(".png")
+                        ]
                         if files:
                             sample_img_path = os.path.join(output_folder, files[0])
                     except Exception as e:
                         log.warning(f"Failed to find sample image: {e}")
-                    
+
                     status_update = gr.update(
-                        value=f"成功生成 {pipeline_result['count']} 张图表! 保存至: {output_folder}", 
-                        interactive=False
+                        value=f"成功生成 {pipeline_result['count']} 张图表! 保存至: {output_folder}",
+                        interactive=False,
                     )
-                    
+
                     image_update = gr.update(
-                        value=sample_img_path if sample_img_path else None, 
-                        visible=True if sample_img_path else False
+                        value=sample_img_path if sample_img_path else None,
+                        visible=True if sample_img_path else False,
                     )
-                    
+
                     result_markdown = f"""
 ### 批量图表生成结果
-- **总计图表数**: {pipeline_result['count']} 张
+- **总计图表数**: {pipeline_result["count"]} 张
 - **保存路径**: {output_folder}
 - **每张图表K线数**: {length}
 - **滑动窗口步长**: {step}
                     """
-                    
-                    next_button_update = gr.update(interactive=True)  # Enable the next button
-                    
+
+                    next_button_update = gr.update(
+                        interactive=True
+                    )  # Enable the next button
+
                     return (
                         status_update,
                         image_update,
@@ -291,14 +315,13 @@ def create_gradio_app():
                         next_button_update,  # Update AI analysis button state
                     )
                 else:
-                    image_path = None
                     image_generated = False
                     log.error(f"Image generation failed: {pipeline_result['error']}")
                     status_update = gr.update(
                         value=f"图表生成失败:\n{pipeline_result['error']}",
                         interactive=False,
                     )
-                    
+
                     return (
                         status_update,
                         gr.update(visible=False),
@@ -602,7 +625,14 @@ def create_gradio_app():
 
         generate_image_button.click(
             fn=run_generate_image,
-            inputs=[data_result_state, data_fetched_state, length_input, step_input, output_dir, filename_prefix],
+            inputs=[
+                data_result_state,
+                data_fetched_state,
+                length_input,
+                step_input,
+                output_dir,
+                filename_prefix,
+            ],
             outputs=[
                 image_status,
                 sample_image,
