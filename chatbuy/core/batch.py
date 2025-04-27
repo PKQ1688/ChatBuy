@@ -1,6 +1,7 @@
 import asyncio
 import glob
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pandas as pd
 from tqdm import tqdm
@@ -72,15 +73,17 @@ def _prepare_batch_data(
             else:
                 log.warning(
                     "DataFrame is empty after timestamp filtering. No market data windows will be created."
-                ) # Use log.warning
+                )  # Use log.warning
         except FileNotFoundError:
             log.warning(
                 f"CSV file not found at {csv_path}. Proceeding without market data."
-            ) # Use log.warning
+            )  # Use log.warning
             df = pd.DataFrame()  # Ensure df exists even if file not found
         except Exception as e:
             log.error(e)
-            log.error(f"Error reading or processing CSV {csv_path}", exc_info=True) # Use log.error
+            log.error(
+                f"Error reading or processing CSV {csv_path}", exc_info=True
+            )  # Use log.error
             df = pd.DataFrame()  # Ensure df exists
 
     if not image_dir and not csv_path:
@@ -157,20 +160,20 @@ async def batch_process(
                 else:
                     log.warning(
                         f"Received None advice for timestamp {ts} on attempt {attempt + 1}/{max_retries}. Retrying after {retry_delay}s..."
-                    ) # Use log.warning
+                    )  # Use log.warning
             except Exception as e:
                 log.error(e)
                 log.error(
                     f"Error processing timestamp {ts} on attempt {attempt + 1}/{max_retries}. Retrying after {retry_delay}s...",
-                    exc_info=True
-                ) # Use log.error
+                    exc_info=True,
+                )  # Use log.error
 
             if attempt < max_retries - 1:
                 await asyncio.sleep(retry_delay)
             else:
                 log.error(
                     f"Failed to get advice for timestamp {ts} after {max_retries} attempts."
-                ) # Use log.error
+                )  # Use log.error
 
         if advice is not None:
             action = str(advice.action)
@@ -192,7 +195,9 @@ async def batch_process(
 
     results = []
     if not tasks:
-        log.info("No tasks to process based on available data and timestamps.") # Use log.info
+        log.info(
+            "No tasks to process based on available data and timestamps."
+        )  # Use log.info
     else:
         semaphore = asyncio.Semaphore(concurrency_limit)
 
@@ -218,7 +223,7 @@ async def batch_process(
     out_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
     log.info(
         f"Processed {len(results)} timestamps asynchronously, results saved to {output_csv}"
-    ) # Use log.info
+    )  # Use log.info
 
 
 def batch_process_sync(
@@ -239,7 +244,7 @@ def batch_process_sync(
 
     results = []
     if not all_timestamps:
-        log.info("No timestamps to process based on available data.") # Use log.info
+        log.info("No timestamps to process based on available data.")  # Use log.info
     else:
         with tqdm(
             total=len(all_timestamps), desc="Processing unified batch (Sync)"
@@ -270,7 +275,10 @@ def batch_process_sync(
                             action = "error"
                             reason = "Sync pipeline returned None"
                     except Exception as e:
-                        log.error(f"Error processing timestamp {ts} synchronously", exc_info=True) # Use log.error
+                        log.error(
+                            f"Error processing timestamp {ts} synchronously",
+                            exc_info=True,
+                        )  # Use log.error
                         action = "error"
                         reason = f"Sync Exception: {e}"
                 else:
@@ -286,7 +294,106 @@ def batch_process_sync(
     out_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
     log.info(
         f"Processed {len(results)} timestamps synchronously, results saved to {output_csv}"
-    ) # Use log.info
+    )  # Use log.info
+
+
+def batch_process_threaded(
+    image_dir: str | None = None,
+    csv_path: str | None = None,
+    output_csv: str = "output/trade_advice_unified_results_threaded.csv",
+    strategy: str | None = None,
+    use_openrouter: bool = True,
+    window_size: int = 30,
+    start_timestamp: str = None,
+    end_timestamp: str = None,
+    max_workers: int = 10,
+):
+    """Process trading data using threading for concurrency.
+
+    Parameters
+    ----------
+    image_dir : str | None, optional
+        Directory containing image files, by default None.
+    csv_path : str | None, optional
+        Path to the CSV file containing market data, by default None.
+    output_csv : str, optional
+        Path to save the output CSV file, by default "output/trade_advice_unified_results_threaded.csv".
+    strategy : str | None, optional
+        Trading strategy description, by default None.
+    use_openrouter : bool, optional
+        Whether to use OpenRouter for processing, by default True.
+    window_size : int, optional
+        Size of the data window for processing, by default 30.
+    start_timestamp : str, optional
+        Start timestamp for filtering data, by default None.
+    end_timestamp : str, optional
+        End timestamp for filtering data, by default None.
+    max_workers : int, optional
+        Maximum number of threads to use, by default 10.
+
+    Returns:
+    -------
+    None
+        Saves the processed results to the specified output CSV file.
+    """
+    all_timestamps, img_map, md_windows = _prepare_batch_data(
+        image_dir, csv_path, window_size, start_timestamp, end_timestamp
+    )
+    results = []
+
+    def process_one(ts, img_path, md_window):
+        pipeline = TradePipeline(use_openrouter=use_openrouter)
+        md_text = md_window.to_markdown(index=False) if md_window is not None else None
+        try:
+            advice = pipeline.run_pipeline(
+                strategy=strategy,
+                image_path=img_path,
+                markdown_text=md_text,
+            )
+            if advice:
+                return {
+                    "trade_time": ts,
+                    "action": str(advice.action),
+                    "reason": str(advice.reason),
+                }
+            else:
+                return {
+                    "trade_time": ts,
+                    "action": "error",
+                    "reason": "Sync pipeline returned None",
+                }
+        except Exception as e:
+            return {
+                "trade_time": ts,
+                "action": "error",
+                "reason": f"Sync Exception: {e}",
+            }
+
+    if not all_timestamps:
+        log.info("No timestamps to process based on available data.")  # Use log.info
+    else:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_ts = {
+                executor.submit(
+                    process_one, ts, img_map.get(ts), md_windows.get(ts)
+                ): ts
+                for ts in all_timestamps
+            }
+            for future in tqdm(
+                as_completed(future_to_ts),
+                total=len(future_to_ts),
+                desc="Processing (Threaded)",
+            ):
+                results.append(future.result())
+
+    out_df = pd.DataFrame(results)
+    if not out_df.empty:
+        out_df.sort_values("trade_time", inplace=True)
+    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+    out_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
+    log.info(
+        f"Processed {len(results)} timestamps with threading, results saved to {output_csv}"
+    )
 
 
 async def run_validation_retry_process(
@@ -300,28 +407,17 @@ async def run_validation_retry_process(
     end_timestamp: str = None,
     async_concurrency: int = 10,
 ):
-    """Runs batch process with validation and retry, using isolated instances for async."""
-    baseline_csv = "output/_temp_baseline_sync.csv"
-    async_temp_csv = f"output/_temp_async_limit_{async_concurrency}.csv"
+    """Optimized: Run async batch first, then only retry failed timestamps synchronously.
+
+    This avoids redundant pipeline runs and saves time/tokens.
+    """
     os.makedirs(os.path.dirname(output_csv), exist_ok=True)  # Ensure output dir exists
-    os.makedirs(os.path.dirname(baseline_csv), exist_ok=True)
+    async_temp_csv = f"output/_temp_async_limit_{async_concurrency}.csv"
     os.makedirs(os.path.dirname(async_temp_csv), exist_ok=True)
 
-    log.info("--- Step 1: Running Synchronous Baseline ---") # Use log.info
-    batch_process_sync(
-        image_dir=image_dir,
-        csv_path=csv_path,
-        output_csv=baseline_csv,
-        strategy=strategy,
-        use_openrouter=use_openrouter,
-        window_size=window_size,
-        start_timestamp=start_timestamp,
-        end_timestamp=end_timestamp,
-    )
-
     log.info(
-        f"--- Step 2: Running Asynchronous Batch (Concurrency={async_concurrency}) ---"
-    ) # Use log.info
+        f"--- Step 1: Running Asynchronous Batch (Concurrency={async_concurrency}) ---"
+    )
     await batch_process(
         image_dir=image_dir,
         csv_path=csv_path,
@@ -334,177 +430,177 @@ async def run_validation_retry_process(
         concurrency_limit=async_concurrency,
     )
 
-    log.info("--- Step 3: Comparing Results and Identifying Retries ---") # Use log.info
+    log.info(
+        "--- Step 3: Comparing Results and Identifying Retries ---"
+    )  # Use log.info
     try:  # Outer try for file loading and comparison logic
-        baseline_df = pd.read_csv(baseline_csv)
+        # The following baseline_csv logic is deprecated and should be removed.
+        # baseline_df = pd.read_csv(baseline_csv)
         async_df = pd.read_csv(async_temp_csv)
     except FileNotFoundError:
-        log.error("Baseline or async temp file not found. Aborting comparison.") # Use log.error
+        log.error(
+            "Baseline or async temp file not found. Aborting comparison."
+        )  # Use log.error
         # No need to clean up here, finally will handle it
         return  # Exit if files aren't ready
     else:  # This block executes only if the try block succeeds (files loaded)
         # Ensure dataframes are not empty before merging
-        if baseline_df.empty or async_df.empty:
-            log.warning(
-                "Baseline or async result dataframe is empty. Skipping comparison and retry."
-            ) # Use log.warning
-            # Decide what to do - maybe save baseline?
-            if not baseline_df.empty:
-                baseline_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
-                log.info(f"Saved non-empty baseline results to {output_csv}") # Use log.info
-            else:
-                log.info("Both baseline and async results are empty.") # Use log.info
-            # Skip retry logic if data is missing
-        else:
-            # Merge results for comparison
-            merged_df = pd.merge(
-                baseline_df[["trade_time", "action", "reason"]],
-                async_df[["trade_time", "action", "reason"]],
-                on="trade_time",
-                suffixes=("_baseline", "_async"),
-                how="left",
-            )
+        # Remove all baseline_df logic, only keep async_df logic.
+        if async_df.empty:
+            log.warning("Async result dataframe is empty. Nothing to retry.")
+            async_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
+            log.info(f"Saved empty async results to {output_csv}")
+            try:
+                if os.path.exists(async_temp_csv):
+                    os.remove(async_temp_csv)
+            except OSError as e:
+                log.warning(f"Could not remove async temp file: {e}")
+            return
 
-            # Identify timestamps needing retry:
-            retry_conditions = (merged_df["action_async"] == "error") | (
-                merged_df["action_async"].fillna("__ASYNC_NAN__")
-                != merged_df["action_baseline"].fillna("__BASELINE_NAN__")
-            )
+        retry_timestamps = async_df.loc[
+            async_df["action"] == "error", "trade_time"
+        ].tolist()
 
-            retry_timestamps = merged_df.loc[retry_conditions, "trade_time"].tolist()
+        if not retry_timestamps:
+            log.info("No failed timestamps in async results. Saving as final output.")
+            async_df.sort_values("trade_time", inplace=True)
+            async_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
+            try:
+                if os.path.exists(async_temp_csv):
+                    os.remove(async_temp_csv)
+            except OSError as e:
+                log.warning(f"Could not remove async temp file: {e}")
+            log.info(f"Final results saved to {output_csv}")
+            return
 
-            if not retry_timestamps:
-                log.info(
-                    "No discrepancies found or only errors in async. Using baseline results as final."
-                ) # Use log.info
-                baseline_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
-                log.info(f"Baseline results saved to {output_csv}") # Use log.info
-            else:
-                log.info(
-                    f"Found {len(retry_timestamps)} timestamps requiring synchronous retry."
-                ) # Use log.info
-                log.info("--- Step 4: Performing Synchronous Retries ---") # Use log.info
+        log.info(
+            f"Found {len(retry_timestamps)} timestamps requiring synchronous retry."
+        )
+        log.info("--- Step 3: Performing Synchronous Retries ---")
 
-                _, img_map_full, md_windows_full = _prepare_batch_data(
-                    image_dir, csv_path, window_size, start_timestamp, end_timestamp
-                )
+        _, img_map_full, md_windows_full = _prepare_batch_data(
+            image_dir, csv_path, window_size, start_timestamp, end_timestamp
+        )
 
-                retry_pipeline = TradePipeline(use_openrouter=use_openrouter)
-                retry_results = []
+        retry_pipeline = TradePipeline(use_openrouter=use_openrouter)
+        retry_results = []
 
-                with tqdm(
-                    total=len(retry_timestamps),
-                    desc="Retrying failed/mismatched timestamps",
-                ) as pbar:
-                    for ts in retry_timestamps:
-                        img_path = img_map_full.get(ts)
-                        md_window = md_windows_full.get(ts)
-                        action = "error"
-                        reason = "Retry failed or skipped"
-                        advice = None
+        with tqdm(
+            total=len(retry_timestamps),
+            desc="Retrying failed timestamps (Sync)",
+        ) as pbar:
+            for ts in retry_timestamps:
+                img_path = img_map_full.get(ts)
+                md_window = md_windows_full.get(ts)
+                action = "error"
+                reason = "Retry failed or skipped"
+                advice = None
 
-                        try:  # Inner try for individual retry pipeline run
-                            if img_path or md_window is not None:
-                                md_text = (
-                                    md_window.to_markdown(index=False)
-                                    if md_window is not None
-                                    else None
-                                )
-                                advice = retry_pipeline.run_pipeline(
-                                    strategy=strategy,
-                                    image_path=img_path,
-                                    markdown_text=md_text,
-                                )
-                                if advice:
-                                    action = str(advice.action)
-                                    reason = str(advice.reason) + " (Retried)"
-                                else:
-                                    reason = "Retry pipeline returned None"
-                            else:
-                                reason = (
-                                    "No data found for retry timestamp (unexpected)"
-                                )
-                        except Exception as e:
-                            log.error(f"Error during retry for timestamp {ts}", exc_info=True) # Use log.error
-                            reason = f"Retry Exception: {e}"
-
-                        # Corrected indentation for code outside except but inside loop
-                        retry_results.append(
-                            {
-                                "trade_time": ts,
-                                "action": action,
-                                "reason": reason,
-                            }
+                try:
+                    if img_path or md_window is not None:
+                        md_text = (
+                            md_window.to_markdown(index=False)
+                            if md_window is not None
+                            else None
                         )
-                        pbar.update(1)
+                        advice = retry_pipeline.run_pipeline(
+                            strategy=strategy,
+                            image_path=img_path,
+                            markdown_text=md_text,
+                        )
+                        if advice:
+                            action = str(advice.action)
+                            reason = str(advice.reason) + " (Retried)"
+                        else:
+                            reason = "Retry pipeline returned None"
+                    else:
+                        reason = "No data found for retry timestamp (unexpected)"
+                except Exception as e:
+                    log.error(f"Error during retry for timestamp {ts}", exc_info=True)
+                    reason = f"Retry Exception: {e}"
 
-                log.info("--- Step 5: Merging Final Results ---") # Use log.info
-                retry_df = pd.DataFrame(retry_results)
+                retry_results.append(
+                    {
+                        "trade_time": ts,
+                        "action": action,
+                        "reason": reason,
+                    }
+                )
+                pbar.update(1)
 
-                # Ensure retry_df is not empty before proceeding
-                if not retry_df.empty:
-                    final_df = baseline_df.copy()
-                    final_df.set_index("trade_time", inplace=True)
-                    retry_df.set_index("trade_time", inplace=True)
-                    final_df.update(retry_df)
-                    final_df.reset_index(inplace=True)
+        log.info("--- Step 4: Merging Async and Retry Results ---")
+        retry_df = pd.DataFrame(retry_results)
 
-                    final_df.sort_values("trade_time", inplace=True)
-                    log.info(f"Saving final combined results to {output_csv}") # Use log.info
-                    final_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
-                else:
-                    log.warning(
-                        "Retry process yielded no results. Saving original baseline."
-                    ) # Use log.warning
-                    baseline_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
+        if not retry_df.empty:
+            final_df = async_df.copy()
+            final_df.set_index("trade_time", inplace=True)
+            retry_df.set_index("trade_time", inplace=True)
+            final_df.update(retry_df)
+            final_df.reset_index(inplace=True)
+            final_df.sort_values("trade_time", inplace=True)
+            log.info(f"Saving final combined results to {output_csv}")
+            final_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
+        else:
+            log.warning(
+                "Retry process yielded no results. Saving original async results."
+            )
+            async_df.sort_values("trade_time", inplace=True)
+            async_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
+
+        try:
+            if os.path.exists(async_temp_csv):
+                os.remove(async_temp_csv)
+                log.info("Successfully removed async temp file.")
+        except OSError as e:
+            log.warning(f"Could not remove async temp file: {e}")
 
     finally:  # This finally corresponds to the outer try block starting at line 336 (Corrected Alignment)
-        log.info("--- Step 6: Cleaning up temporary files ---") # Use log.info
+        log.info("--- Step 6: Cleaning up temporary files ---")  # Use log.info
         cleaned_count = 0
         try:  # Inner try for cleanup actions
-            if os.path.exists(baseline_csv):
-                os.remove(baseline_csv)
-                cleaned_count += 1
+            # Remove baseline_csv cleanup, as baseline_csv is no longer used.
             if os.path.exists(async_temp_csv):
                 os.remove(async_temp_csv)
                 cleaned_count += 1
-            log.info(f"Successfully removed {cleaned_count} temporary file(s).") # Use log.info
+            log.info(
+                f"Successfully removed {cleaned_count} temporary file(s)."
+            )  # Use log.info
         except OSError as e:
-            log.warning(f"Could not remove one or more temporary files: {e}") # Use log.warning
+            log.warning(
+                f"Could not remove one or more temporary files: {e}"
+            )  # Use log.warning
 
 
 # --- Main execution block ---
-if __name__ == "__main__": # Corrected Alignment (No Indentation)
+if __name__ == "__main__":  # Corrected Alignment (No Indentation)
     # Define parameters
     image_dir = "data/btc_daily"
     csv_path = "data/BTC_USDT_1d_with_indicators.csv"
     output_file = "output/trade_advice_final_results_refactored.csv"
-    strategy = "Analyze only the last day's candlestick data. Buy when the closing price of the day breaks below the lower Bollinger Band, sell when the closing price exceeds the upper Bollinger Band, otherwise hold."
+    strategy = "仅分析最后一天的K线数据。当日收盘价跌破布林带下轨时买入，当日收盘价超过布林带上轨时卖出，否则持有。"
     start_date = "2021-06-30"
     end_date = "2021-12-31"
     concurrency = 10
     w_size = 120
     use_router = False
 
-    log.info("Starting validation process...") # Use log.info
+    log.info("Starting validation process...")  # Use log.info
     log.info(
         f"Params: Image Dir='{image_dir}', CSV Path='{csv_path}', Output='{output_file}'"
-    ) # Use log.info
+    )  # Use log.info
     log.info(
         f"Strategy='{strategy[:50]}...', Dates={start_date}-{end_date}, Concurrency={concurrency}"
-    ) # Use log.info
+    )  # Use log.info
 
-    asyncio.run(
-        run_validation_retry_process(
-            image_dir=image_dir,
-            csv_path=csv_path,
-            output_csv=output_file,
-            strategy=strategy,
-            window_size=w_size,
-            use_openrouter=use_router,
-            start_timestamp=start_date,
-            end_timestamp=end_date,
-            async_concurrency=concurrency,
-        )
+    batch_process_threaded(
+        image_dir=image_dir,
+        csv_path=csv_path,
+        output_csv=output_file,
+        strategy=strategy,
+        window_size=w_size,
+        use_openrouter=use_router,
+        start_timestamp=start_date,
+        end_timestamp=end_date,
+        max_workers=concurrency,
     )
-    print("Validation process finished.")
+    print("Threaded batch process finished.")

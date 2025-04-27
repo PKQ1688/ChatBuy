@@ -243,6 +243,8 @@ def create_gradio_app():
                 output_folder,
                 prefix,
             ):
+                import hashlib
+
                 if not is_data_fetched:
                     log.warning("Need to fetch data before generating image")
                     return (
@@ -253,17 +255,73 @@ def create_gradio_app():
                         gr.update(interactive=False),  # analyze_button
                     )
 
+                # 生成唯一子文件夹名（包含主要参数，防止重复）
+                # 假设 current_data_result 可能是 DataFrame 或文件路径
+                symbol, timeframe, start_date, end_date = None, None, None, None
+                if isinstance(current_data_result, str):
+                    # 尝试从文件名中提取参数（如有）
+                    fname = os.path.basename(current_data_result)
+                    # 例如 BTCUSDT_1d_2023-01-01_2024-01-01.csv
+                    parts = fname.replace(".csv", "").split("_")
+                    if len(parts) >= 4:
+                        symbol, timeframe, start_date, end_date = parts[0], parts[1], parts[2], parts[3]
+                # 若无法提取，则用 hash
+                if not symbol:
+                    # 用数据内容hash保证唯一性
+                    if hasattr(current_data_result, "to_csv"):
+                        data_hash = hashlib.md5(current_data_result.to_csv(index=False).encode()).hexdigest()
+                    elif isinstance(current_data_result, str) and os.path.exists(current_data_result):
+                        with open(current_data_result, "rb") as f:
+                            data_hash = hashlib.md5(f.read()).hexdigest()
+                    else:
+                        data_hash = "unknown"
+                    symbol = "data"
+                    timeframe = "tf"
+                    start_date = "start"
+                    end_date = data_hash[:8]
+
+                subfolder_name = f"{symbol}_{timeframe}_{start_date}_{end_date}_len{length}_step{step}"
+                task_folder = os.path.join(output_folder, subfolder_name)
+                os.makedirs(task_folder, exist_ok=True)
+
+                # 检查该任务文件夹下是否已有图片
+                existing_images = [f for f in os.listdir(task_folder) if f.endswith(".png")]
+                if existing_images:
+                    sample_img_path = os.path.join(task_folder, existing_images[0])
+                    status_update = gr.update(
+                        value=f"已存在历史生成结果，共{len(existing_images)}张图表，路径: {task_folder}",
+                        interactive=False,
+                    )
+                    image_update = gr.update(
+                        value=sample_img_path,
+                        visible=True,
+                    )
+                    result_markdown = f"""
+                    ### 批量图表生成结果（已存在）
+                    - **总计图表数**: {len(existing_images)} 张
+                    - **保存路径**: {task_folder}
+                    - **每张图表K线数**: {length}
+                    - **滑动窗口步长**: {step}
+                    """
+                    next_button_update = gr.update(interactive=True)
+                    return (
+                        status_update,
+                        image_update,
+                        result_markdown,
+                        True,
+                        sample_img_path,
+                        True,
+                        next_button_update,
+                    )
+
                 status_update = gr.update(
                     value="正在批量生成图表...", interactive=False
                 )
 
-                # Make sure output directory exists
-                os.makedirs(output_folder, exist_ok=True)
-
-                # Call batch generation function
+                # 调用 pipeline 生成图片到 task_folder
                 pipeline_result = pipeline.run_step_2_generate_images_batch(
                     data_input=current_data_result,
-                    output_dir=output_folder,
+                    output_dir=task_folder,
                     length=length,
                     step=step,
                     filename_prefix=prefix,
@@ -271,20 +329,19 @@ def create_gradio_app():
 
                 if pipeline_result["success"]:
                     image_generated = True
-
                     # Find first image to display as sample
                     sample_img_path = None
                     try:
                         files = [
-                            f for f in os.listdir(output_folder) if f.endswith(".png")
+                            f for f in os.listdir(task_folder) if f.endswith(".png")
                         ]
                         if files:
-                            sample_img_path = os.path.join(output_folder, files[0])
+                            sample_img_path = os.path.join(task_folder, files[0])
                     except Exception as e:
                         log.warning(f"Failed to find sample image: {e}")
 
                     status_update = gr.update(
-                        value=f"成功生成 {pipeline_result['count']} 张图表! 保存至: {output_folder}",
+                        value=f"成功生成 {pipeline_result['count']} 张图表! 保存至: {task_folder}",
                         interactive=False,
                     )
 
@@ -294,11 +351,11 @@ def create_gradio_app():
                     )
 
                     result_markdown = f"""
-### 批量图表生成结果
-- **总计图表数**: {pipeline_result["count"]} 张
-- **保存路径**: {output_folder}
-- **每张图表K线数**: {length}
-- **滑动窗口步长**: {step}
+                    ### 批量图表生成结果
+                    - **总计图表数**: {pipeline_result["count"]} 张
+                    - **保存路径**: {task_folder}
+                    - **每张图表K线数**: {length}
+                    - **滑动窗口步长**: {step}
                     """
 
                     next_button_update = gr.update(
