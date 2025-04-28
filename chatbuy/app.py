@@ -1,4 +1,4 @@
-import datetime  # Make sure datetime import is at the top level
+import datetime
 import os
 
 import gradio as gr
@@ -41,7 +41,7 @@ def create_gradio_app():
                     value="BTC/USDT", label="Symbol (标的)", interactive=True
                 )
                 timeframe_input = gr.Dropdown(
-                    choices=["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"],
+                    choices=["15m", "1h", "4h", "1d", "1w"],
                     value="1d",
                     label="Timeframe (K线周期)",
                     interactive=True,
@@ -56,12 +56,12 @@ def create_gradio_app():
                 start_date_input = gr.Textbox(
                     label="起始时间 (YYYY-MM-DD)",
                     value=default_start_date,
-                    placeholder="例如: 2023-01-01",
+                    placeholder="e.g. 2023-01-01",
                 )
                 end_date_input = gr.Textbox(
                     label="结束时间 (YYYY-MM-DD)",
                     value=default_end_date,
-                    placeholder="例如: 2024-01-01",
+                    placeholder="e.g. 2024-01-01",
                 )
             with gr.Row():
                 fetch_button = gr.Button("Fetch Data", variant="primary")
@@ -264,13 +264,22 @@ def create_gradio_app():
                     # 例如 BTCUSDT_1d_2023-01-01_2024-01-01.csv
                     parts = fname.replace(".csv", "").split("_")
                     if len(parts) >= 4:
-                        symbol, timeframe, start_date, end_date = parts[0], parts[1], parts[2], parts[3]
+                        symbol, timeframe, start_date, end_date = (
+                            parts[0],
+                            parts[1],
+                            parts[2],
+                            parts[3],
+                        )
                 # 若无法提取，则用 hash
                 if not symbol:
                     # 用数据内容hash保证唯一性
                     if hasattr(current_data_result, "to_csv"):
-                        data_hash = hashlib.md5(current_data_result.to_csv(index=False).encode()).hexdigest()
-                    elif isinstance(current_data_result, str) and os.path.exists(current_data_result):
+                        data_hash = hashlib.md5(
+                            current_data_result.to_csv(index=False).encode()
+                        ).hexdigest()
+                    elif isinstance(current_data_result, str) and os.path.exists(
+                        current_data_result
+                    ):
                         with open(current_data_result, "rb") as f:
                             data_hash = hashlib.md5(f.read()).hexdigest()
                     else:
@@ -285,7 +294,9 @@ def create_gradio_app():
                 os.makedirs(task_folder, exist_ok=True)
 
                 # 检查该任务文件夹下是否已有图片
-                existing_images = [f for f in os.listdir(task_folder) if f.endswith(".png")]
+                existing_images = [
+                    f for f in os.listdir(task_folder) if f.endswith(".png")
+                ]
                 if existing_images:
                     sample_img_path = os.path.join(task_folder, existing_images[0])
                     status_update = gr.update(
