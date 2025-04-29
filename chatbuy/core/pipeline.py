@@ -119,7 +119,7 @@ class TradingAnalysisPipeline:
                 f"Pipeline: Calling fetch_historical_data(symbol='{symbol}', timeframe='{timeframe}', start_date='{start_date}')..."
             )
             result_df = fetch_historical_data(
-                symbol=symbol, timeframe=timeframe, start_date=start_date
+                symbol=symbol, timeframe=timeframe, start_date=start_date, end_date=end_date
             )
             # end_date 过滤
             if end_date and isinstance(result_df, pd.DataFrame):

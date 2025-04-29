@@ -23,16 +23,16 @@ def create_gradio_app():
     with gr.Blocks(title="Trading Strategy Analysis Pipeline") as app:
         gr.Markdown("# Trading Strategy Analysis Pipeline (Pipeline Version)")
 
-        # --- State Management (using gr.State) ---
-        data_result_state = gr.State(None)
-        image_path_state = gr.State(None)
-        analysis_result_state = gr.State(None)
-        report_content_state = gr.State(None)
         # State flags (might be useful although Gradio's flow control differs)
         data_fetched_state = gr.State(False)
         image_generated_state = gr.State(False)
         analysis_done_state = gr.State(False)
         report_generated_state = gr.State(False)
+        
+        data_result_state = gr.State(None)
+        image_path_state = gr.State(None)
+        analysis_result_state = gr.State(None)
+        report_content_state = gr.State(None)
 
         # --- Step 1: Fetch Candlestick Data ---
         with gr.Tab("Step 1: Fetch Data"):
@@ -747,5 +747,5 @@ def create_gradio_app():
 
 # --- Main Program Entry Point ---
 if __name__ == "__main__":
-    gradio_app = create_gradio_app()
-    gradio_app.launch(share=False)
+    demo = create_gradio_app()
+    demo.launch(share=False)
