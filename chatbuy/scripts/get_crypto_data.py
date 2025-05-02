@@ -3,7 +3,8 @@ import time
 
 import ccxt
 import pandas as pd
-from talipp.indicators import BB, MACD
+
+from chatbuy.scripts.basic_indicators import add_basic_indicators
 
 # Initialize Binance client
 exchange = ccxt.binance({"rateLimit": 1200, "enableRateLimit": True})
@@ -69,31 +70,30 @@ def main(symbol="BTC", timeframe="1d", start_date="2017-07-01T00:00:00Z"):
 
     df = fetch_historical_data(symbol_pair, timeframe, start_date)
 
-    # 计算技术指标
-    macd = MACD(12, 26, 9, df["close"])[:]
-    bb = BB(20, 2, df["close"])[:]
-
-    for index, row in df.iterrows():
-        if macd[index] is not None:
-            df.at[index, "macd"] = macd[index].macd
-            df.at[index, "signal"] = macd[index].signal
-            df.at[index, "histogram"] = macd[index].histogram
-
-        if bb[index] is not None:
-            df.at[index, "bb_upper"] = bb[index].ub
-            df.at[index, "bb_middle"] = bb[index].cb
-            df.at[index, "bb_lower"] = bb[index].lb
-
+    df = add_basic_indicators(df)
+    indicator_cols = [
+        "macd",
+        "signal",
+        "histogram",
+        "bb_upper",
+        "bb_middle",
+        "bb_lower",
+        "rsi",
+        "adx",
+        "di_plus",
+        "di_minus",
+    ]
+    df = df.dropna(subset=indicator_cols)
     df = df.infer_objects(copy=False)
-    df.fillna(0, inplace=True)
 
     # Create data directory if it doesn't exist
     if not os.path.exists("data"):
         os.makedirs("data")
 
-    # 保存包含指标的CSV文件
     df.to_csv(f"data/{symbol}_USDT_{timeframe}_with_indicators.csv", index=False)
-    print(f"History data with indicators is stored in data/{symbol}_USDT_{timeframe}_with_indicators.csv")
+    print(
+        f"History data with indicators is stored in data/{symbol}_USDT_{timeframe}_with_indicators.csv"
+    )
 
 
 if __name__ == "__main__":
