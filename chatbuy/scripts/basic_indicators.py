@@ -16,40 +16,78 @@ def add_basic_indicators(data):
     pd.DataFrame
         The input DataFrame with additional columns for the calculated indicators.
     """
-    ohlcv_list = [
-        OHLCV(open=row["open"], high=row["high"], low=row["low"], close=row["close"], volume=row["volume"])
-        for _, row in data.iterrows()
-    ]
-    macd = MACD(12, 26, 9, [x.close for x in ohlcv_list])[:]
-    bb = BB(20, 2, [x.close for x in ohlcv_list])[:]
-    rsi = RSI(14, [x.close for x in ohlcv_list])[:]
-    adx = ADX(14, ohlcv_list)[:]
+    if len(data) == 0:
+        raise ValueError("No data available to calculate indicators")
 
-    for index, row in data.iterrows():
-        if macd[index] is not None:
-            data.at[index, "macd"] = macd[index].macd
-            data.at[index, "signal"] = macd[index].signal
-            data.at[index, "histogram"] = macd[index].histogram
+    # 参考 talipp 官方示例风格，逐步添加数据并获取指标
+    macd = MACD(12, 26, 9)
+    bb = BB(20, 2)
+    rsi = RSI(14)
+    adx = ADX(14, 14)
 
-        if bb[index] is not None:
-            data.at[index, "bb_upper"] = bb[index].ub
-            data.at[index, "bb_middle"] = bb[index].cb
-            data.at[index, "bb_lower"] = bb[index].lb
+    # 初始化指标列
+    data["macd"] = None
+    data["signal"] = None
+    data["histogram"] = None
+    data["bb_upper"] = None
+    data["bb_middle"] = None
+    data["bb_lower"] = None
+    data["rsi"] = None
+    data["adx"] = None
+    data["di_plus"] = None
+    data["di_minus"] = None
 
-        if rsi[index] is not None:
-            data.at[index, "rsi"] = rsi[index].value
+    # 逐行添加数据
+    for i, row in data.iterrows():
+        ohlcv = OHLCV(
+            open=row["open"],
+            high=row["high"],
+            low=row["low"],
+            close=row["close"],
+            volume=row["volume"],
+        )
+        macd.add(ohlcv.close)
+        bb.add(ohlcv.close)
+        rsi.add(ohlcv.close)
+        adx.add(ohlcv)
 
-        if adx[index] is not None:
-            data.at[index, "adx"] = adx[index].adx
-            data.at[index, "di_plus"] = adx[index].di_plus
-            data.at[index, "di_minus"] = adx[index].di_minus
+        # MACD
+        macd_val = macd[-1] if len(macd) > 0 else None
+        if macd_val is not None:
+            data.at[i, "macd"] = macd_val.macd
+            data.at[i, "signal"] = macd_val.signal
+            data.at[i, "histogram"] = macd_val.histogram
+
+        # BB
+        bb_val = bb[-1] if len(bb) > 0 else None
+        if bb_val is not None:
+            data.at[i, "bb_upper"] = bb_val.ub
+            data.at[i, "bb_middle"] = bb_val.cb
+            data.at[i, "bb_lower"] = bb_val.lb
+
+        # RSI
+        rsi_val = rsi[-1] if len(rsi) > 0 else None
+        if rsi_val is not None:
+            if hasattr(rsi_val, "value"):
+                data.at[i, "rsi"] = rsi_val.value
+            else:
+                data.at[i, "rsi"] = rsi_val
+
+        # ADX
+        adx_val = adx[-1] if len(adx) > 0 else None
+        if adx_val is not None:
+            data.at[i, "adx"] = adx_val.adx
+            data.at[i, "di_plus"] = adx_val.plus_di
+            data.at[i, "di_minus"] = adx_val.minus_di
 
     data = data.infer_objects(copy=False)
-    data.fillna(0, inplace=True)
+    # 删除包含任何 NaN 的行（即有指标未计算出的行）
+    data = data.dropna().reset_index(drop=True)
     return data
 
+
 if __name__ == "__main__":
-    data = pd.read_csv("data/BTC_USDT_1d.csv")
+    data = pd.read_csv("data/BTC_USDT_1d_raw.csv")
 
     # 计算并添加指标
     data = add_basic_indicators(data)

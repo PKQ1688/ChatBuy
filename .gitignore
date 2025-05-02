@@ -29,4 +29,4 @@ logs/
 .DS_Store
 .roo/
 
-.vscode/
+# .vscode/
