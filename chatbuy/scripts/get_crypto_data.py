@@ -6,8 +6,6 @@ import traceback
 import ccxt
 import pandas as pd
 
-from chatbuy.scripts.basic_indicators import add_basic_indicators
-
 # Initialize Binance client
 exchange = ccxt.binance({"rateLimit": 1200, "enableRateLimit": True})
 
@@ -119,22 +117,35 @@ def main(symbol="BTC", timeframe="1d", start_date="2017-07-01T00:00:00Z", debug=
             print(f"Error: No data was returned for {symbol_pair}.")
             return
 
-        # Create a backup of the raw data before adding indicators
+        # 标准化列名
+        df.rename(
+            columns={
+                "open": "Open",
+                "high": "High",
+                "low": "Low",
+                "close": "Close",
+                "volume": "Volume",
+            },
+            inplace=True,
+        )
+        # 设置索引为时间
+        df.set_index("timestamp", inplace=True)
+
         if not os.path.exists("data"):
             os.makedirs("data")
 
-        # Save raw data first in case indicator calculation fails
+        # 保存标准格式的原始数据
         raw_output_path = f"data/{symbol}_USDT_{timeframe}_raw.csv"
-        df.to_csv(raw_output_path, index=False)
-        print(f"Saved raw data to {raw_output_path}")
+        df.to_csv(raw_output_path, index=True)
+        print(f"Saved standardized raw data to {raw_output_path}")
 
-        print(f"Adding technical indicators to {len(df)} rows of data...")
-        df = add_basic_indicators(df)
+        # print(f"Adding technical indicators to {len(df)} rows of data...")
+        # df = add_basic_indicators(df)
 
-        output_path = f"data/{symbol}_USDT_{timeframe}_with_indicators.csv"
-        df.to_csv(output_path, index=False)
-        print(f"Successfully saved data with indicators to {output_path}")
-        print(f"Data shape: {df.shape} rows × {df.shape[1]} columns")
+        # output_path = f"data/{symbol}_USDT_{timeframe}_with_indicators.csv"
+        # df.to_csv(output_path, index=True)
+        # print(f"Successfully saved data with indicators to {output_path}")
+        # print(f"Data shape: {df.shape} rows × {df.shape[1]} columns")
 
     except Exception as e:
         print(f"An error occurred: {e}")

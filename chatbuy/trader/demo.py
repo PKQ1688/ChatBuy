@@ -1,6 +1,12 @@
+import pandas as pd
 from backtesting import Backtest, Strategy
 from backtesting.lib import crossover
-from backtesting.test import GOOG, SMA
+from backtesting.test import GOOG
+
+
+def SMA(arr: pd.Series, n: int) -> pd.Series:
+    """Returns `n`-period simple moving average of array `arr`."""
+    return pd.Series(arr).rolling(n).mean()
 
 
 class SmaCross(Strategy):

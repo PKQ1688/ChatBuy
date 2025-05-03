@@ -40,11 +40,11 @@ def add_basic_indicators(data):
     # 逐行添加数据
     for i, row in data.iterrows():
         ohlcv = OHLCV(
-            open=row["open"],
-            high=row["high"],
-            low=row["low"],
-            close=row["close"],
-            volume=row["volume"],
+            open=row["Open"],
+            high=row["High"],
+            low=row["Low"],
+            close=row["Close"],
+            volume=row["Volume"],
         )
         macd.add(ohlcv.close)
         bb.add(ohlcv.close)
