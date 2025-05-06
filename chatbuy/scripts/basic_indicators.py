@@ -33,9 +33,9 @@ def add_basic_indicators(data):
     data["bb_middle"] = None
     data["bb_lower"] = None
     data["rsi"] = None
-    data["adx"] = None
-    data["di_plus"] = None
-    data["di_minus"] = None
+    # data["adx"] = None
+    # data["di_plus"] = None
+    # data["di_minus"] = None
 
     # 逐行添加数据
     for i, row in data.iterrows():
@@ -73,12 +73,12 @@ def add_basic_indicators(data):
             else:
                 data.at[i, "rsi"] = rsi_val
 
-        # ADX
-        adx_val = adx[-1] if len(adx) > 0 else None
-        if adx_val is not None:
-            data.at[i, "adx"] = adx_val.adx
-            data.at[i, "di_plus"] = adx_val.plus_di
-            data.at[i, "di_minus"] = adx_val.minus_di
+        # # ADX
+        # adx_val = adx[-1] if len(adx) > 0 else None
+        # if adx_val is not None:
+        #     data.at[i, "adx"] = adx_val.adx
+        #     data.at[i, "di_plus"] = adx_val.plus_di
+        #     data.at[i, "di_minus"] = adx_val.minus_di
 
     data = data.infer_objects(copy=False)
     # 删除包含任何 NaN 的行（即有指标未计算出的行）

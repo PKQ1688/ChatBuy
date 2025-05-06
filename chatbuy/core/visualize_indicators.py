@@ -39,6 +39,7 @@ class IndicatorVisualizer:
     OHLC_COLUMNS: list[str] = ["open", "high", "low", "close"]
     BB_COLUMNS: list[str] = ["bb_upper", "bb_middle", "bb_lower"]
     MACD_COLUMNS: list[str] = ["macd", "signal", "histogram"]
+    RSI_COLUMNS: list[str] = ["rsi"]
 
     def __init__(self, possible_date_columns: list[str] | None = None):
         """Initialize IndicatorVisualizer.
@@ -89,28 +90,33 @@ class IndicatorVisualizer:
 
     def _setup_axes(
         self, date_column: str | None
-    ) -> tuple[plt.Figure, plt.Axes, plt.Axes, plt.Axes]:
-        """Setup matplotlib figure and subplots."""
-        fig = plt.figure(figsize=(14, 12))
-        ax1 = plt.subplot2grid((4, 1), (0, 0), rowspan=2)  # Price and BB
-        ax2 = plt.subplot2grid((4, 1), (2, 0), sharex=ax1)  # Volume
-        ax3 = plt.subplot2grid((4, 1), (3, 0), sharex=ax1)  # MACD
+    ) -> tuple[plt.Figure, plt.Axes, plt.Axes, plt.Axes, plt.Axes]:
+        """Setup matplotlib figure and subplots, including RSI."""
+        fig = plt.figure(figsize=(14, 15))
+        ax1 = plt.subplot2grid((5, 1), (0, 0), rowspan=2)  # Price and BB
+        ax2 = plt.subplot2grid((5, 1), (2, 0), sharex=ax1)  # Volume
+        ax3 = plt.subplot2grid((5, 1), (3, 0), sharex=ax1)  # MACD
+        ax4 = plt.subplot2grid((5, 1), (4, 0), sharex=ax1)  # RSI
 
-        # Hide X-axis labels and ticks on ax1 and ax2 since they share the X-axis with ax3
+        # Hide X-axis labels and ticks on ax1, ax2, ax3 since they share the X-axis with ax4
         plt.setp(ax1.get_xticklabels(), visible=False)
         plt.setp(ax2.get_xticklabels(), visible=False)
+        plt.setp(ax3.get_xticklabels(), visible=False)
         ax1.tick_params(
             axis="x", which="both", bottom=False, top=False, labelbottom=False
         )
         ax2.tick_params(
             axis="x", which="both", bottom=False, top=False, labelbottom=False
         )
+        ax3.tick_params(
+            axis="x", which="both", bottom=False, top=False, labelbottom=False
+        )
 
         if date_column:
             # Initial setup, will be further adjusted in _format_xaxis
-            ax3.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+            ax4.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
 
-        return fig, ax1, ax2, ax3
+        return fig, ax1, ax2, ax3, ax4
 
     def _plot_price_and_bb(
         self,
@@ -230,6 +236,29 @@ class IndicatorVisualizer:
             ax.set_title("MACD Indicator", fontsize=12)  # Keep title for consistency
             ax.set_ylabel("MACD Value")  # Keep label for consistency
 
+    def _plot_rsi(self, ax: plt.Axes, data: pd.DataFrame, x_values: pd.Series):
+        """Plot RSI indicator."""
+        if "rsi" in data.columns:
+            ax.plot(x_values, data["rsi"], label="RSI", color="orange", linewidth=1.2)
+            ax.axhline(70, color="red", linestyle="--", linewidth=0.8, alpha=0.7, label="Overbought (70)")
+            ax.axhline(30, color="green", linestyle="--", linewidth=0.8, alpha=0.7, label="Oversold (30)")
+            ax.set_title("RSI Indicator", fontsize=12)
+            ax.set_ylabel("RSI")
+            ax.set_ylim(0, 100)
+            ax.legend(loc="upper left")
+            ax.grid(True, alpha=0.3)
+        else:
+            ax.text(
+                0.5,
+                0.5,
+                "No RSI data",
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=ax.transAxes,
+            )
+            ax.set_title("RSI Indicator", fontsize=12)
+            ax.set_ylabel("RSI")
+            ax.set_ylim(0, 100)
     def _format_xaxis(
         self,
         ax: plt.Axes,
@@ -240,14 +269,14 @@ class IndicatorVisualizer:
     ):
         """Format X-axis labels and ticks."""
         ax.set_xlabel(x_label)
-
+    
         # Try to get a reasonable number of ticks
         num_ticks = 10  # Can be adjusted as needed
         locator = plt.MaxNLocator(
             nbins=num_ticks, prune="both"
         )  # 'both' avoids edge ticks
         ax.xaxis.set_major_locator(locator)
-
+    
         if date_column:
             # Ensure DateFormatter is used
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
@@ -257,10 +286,10 @@ class IndicatorVisualizer:
             # For non-date axes, ensure labels are integers
             def format_func(value, tick_number):
                 return f"{int(value)}"
-
+    
             ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
             plt.setp(ax.get_xticklabels(), rotation=30, ha="right")
-
+    
         # Force display of first and last tick labels (if they're not in the auto-generated ticks)
         # Note: This might make labels too dense, use with caution or find a better strategy
         # current_ticks = ax.get_xticks()
@@ -298,13 +327,14 @@ class IndicatorVisualizer:
         df_prepared, date_col, date_num_vals, x_axis_vals, x_axis_label = (
             self._prepare_data_and_xaxis(data)
         )
-        fig, ax_price, ax_vol, ax_macd = self._setup_axes(date_col)
+        fig, ax_price, ax_vol, ax_macd, ax_rsi = self._setup_axes(date_col)
 
         self._plot_price_and_bb(ax_price, df_prepared, date_num_vals, x_axis_vals)
         self._plot_volume(ax_vol, df_prepared, x_axis_vals)
         self._plot_macd(ax_macd, df_prepared, x_axis_vals)
+        self._plot_rsi(ax_rsi, df_prepared, x_axis_vals)
 
-        self._format_xaxis(ax_macd, date_col, date_num_vals, x_axis_vals, x_axis_label)
+        self._format_xaxis(ax_rsi, date_col, date_num_vals, x_axis_vals, x_axis_label)
 
         plt.tight_layout(
             rect=[0, 0.03, 1, 0.97]
@@ -426,7 +456,8 @@ class IndicatorVisualizer:
             window_end_date = sub_df[date_column].iloc[-1]
             # Format date to ensure legal filename
             date_str = window_end_date.strftime("%Y%m%d")
-            output_filename = f"{filename_prefix}_{date_str}_len{length}_idx{i}.png"
+            output_filename = f"{filename_prefix}_{date_str}_len{length}.png"
+            # output_filename = f"{filename_prefix}_{date_str}_len{length}_idx{i}.png"
             output_file_path = os.path.join(output_dir, output_filename)
 
             print(
@@ -480,8 +511,8 @@ if __name__ == "__main__":
             data_path=DATA_FILE,
             output_dir=OUTPUT_BATCH_DIR,
             length=120,
-            start_time="2021-06-30",
-            end_time="2021-12-31",
+            # start_time="2021-06-30",
+            # end_time="2021-12-31",
             step=1,  # Generate a chart every day
             show=False,
             filename_prefix="btc_daily",
