@@ -1,6 +1,5 @@
 # from textwrap import dedent
 
-import glob
 import os
 
 from agno.agent import Agent
@@ -28,7 +27,7 @@ class BasicAnalysis:
             instructions=[],
         )
 
-    def analyze_images(
+    def analyze_image(
         self,
         image_path: str,
         prompt: str = "Please analyze this K-line chart and provide your trading advice.",
@@ -43,6 +42,15 @@ class BasicAnalysis:
         images = [Image(filepath=image_path)]
         try:
             response = self.agent.run(prompt, images=images)
-            return {"image": image_path, "result": response}
+            return {"image": image_path, "result": response.content}
         except Exception as e:
             return {"image": image_path, "result": f"Analysis failed: {e}"}
+
+
+if __name__ == "__main__":
+    # Example usage
+    analysis = BasicAnalysis()
+    result = analysis.analyze_images(
+        "data/btc_daily_refactored/btc_daily_20180116_len120.png"
+    )
+    print(result)
