@@ -311,6 +311,10 @@ class IndicatorVisualizer:
         Raises:
             ValueError: If the output directory cannot be created.
         """
+        if os.path.exists(output_file_path):
+            print(f"Chart already exists: {output_file_path}")
+            return output_file_path
+
         output_dir = os.path.dirname(output_file_path)
         if output_dir:
             try:

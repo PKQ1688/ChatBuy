@@ -30,18 +30,19 @@ class BasicAnalysis:
 
     def analyze_images(
         self,
-        image_dir="data/btc_daily_refactored",
-        pattern="*.png",
-        prompt="请分析这张K线图，并给出你的交易建议。",
+        image_path: str,
+        prompt: str = "Please analyze this K-line chart and provide your trading advice.",
     ):
-        """Batch analyze all images in the specified folder and return a list of image paths and AI analysis results."""
-        image_paths = glob.glob(os.path.join(image_dir, pattern))
-        results = []
-        for img_path in sorted(image_paths):
-            images = [Image(filepath=img_path)]
-            try:
-                response = self.agent.run(prompt, images=images)
-                results.append({"image": img_path, "result": response})
-            except Exception as e:
-                results.append({"image": img_path, "result": f"分析失败: {e}"})
-        return results
+        """Analyzes a single image and returns its path and AI analysis result."""
+        if not os.path.exists(image_path):
+            return {"image": image_path, "result": f"Image not found at {image_path}."}
+
+        if not os.path.isfile(image_path):
+            return {"image": image_path, "result": f"Path {image_path} is not a file."}
+
+        images = [Image(filepath=image_path)]
+        try:
+            response = self.agent.run(prompt, images=images)
+            return {"image": image_path, "result": response}
+        except Exception as e:
+            return {"image": image_path, "result": f"Analysis failed: {e}"}
