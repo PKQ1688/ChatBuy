@@ -2,11 +2,26 @@
 
 import asyncio
 import os
+from typing import Literal
 
 from agno.agent import Agent
 from agno.media import Image
 from agno.models.azure import AzureOpenAI
 from agno.team.team import Team
+from pydantic import BaseModel
+
+
+class TradeAdvice(BaseModel):
+    """Represents trade advice based on the analysis of a chart.
+
+    action : str
+        The recommended action, which can be "hold", "sell", or "buy".
+    reason : str
+        The reason for the recommended action.
+    """
+
+    action: Literal["hold", "sell", "buy"]  # Restrict to specific values
+    reason: str
 
 
 class BasicTechnicalAnalysis:
@@ -51,7 +66,7 @@ class BasicTechnicalAnalysis:
             model=self.model,
             members=[macd_agent, bb_agent, rsi_agent],
             show_tool_calls=True,
-            markdown=True,
+            # markdown=True,
             description="You are a technical analysis team that collaborates on trading insights.",
             instructions=[
                 "You will analyze the K-line chart and provide trading advice.",
@@ -60,6 +75,7 @@ class BasicTechnicalAnalysis:
                 "You will provide a summary of your analysis and trading advice.",
             ],
             show_members_responses=True,
+            response_model=TradeAdvice,
         )
 
     def analyze_image(

@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "agno",
+        "aiohttp",
         "arun",
         "axhline",
         "Backtest",
@@ -14,10 +15,12 @@
         "figsize",
         "fontsize",
         "horizontalalignment",
+        "httpx",
         "labelbottom",
         "linestyle",
         "logfire",
         "MACD",
+        "matplotlib",
         "mdates",
         "mplfinance",
         "nbins",
