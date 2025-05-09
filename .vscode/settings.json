@@ -1,6 +1,8 @@
 {
     "cSpell.words": [
         "agno",
+        "arun",
+        "axhline",
         "Backtest",
         "backtesting",
         "Bollinger",
@@ -13,6 +15,7 @@
         "fontsize",
         "horizontalalignment",
         "labelbottom",
+        "linestyle",
         "logfire",
         "MACD",
         "mdates",
@@ -30,7 +33,8 @@
         "xlabel",
         "xticklabels",
         "xticks",
-        "ylabel"
+        "ylabel",
+        "ylim"
     ],
     "cSpell.ignorePaths": [
         ".venv/**",
