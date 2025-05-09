@@ -36,11 +36,11 @@ class BasicTechnicalAnalysis:
         rsi_prompt: str = None,
     ):
         if macd_prompt is None:
-            macd_prompt = "You are a trading assistant.You provide analysis based on MACD indicators."
+            macd_prompt = "Provide analysis based on MACD indicators."
         if bb_prompt is None:
-            bb_prompt = "You are a trading assistant.You provide analysis based on Bollinger Bands indicators."
+            bb_prompt = "Provide analysis based on Bollinger Bands indicators."
         if rsi_prompt is None:
-            rsi_prompt = "You are a trading assistant.You provide analysis based on RSI indicators."
+            rsi_prompt = "Provide analysis based on RSI indicators."
 
         self.model = AzureOpenAI(id=model_name, temperature=temperature)
 
@@ -62,7 +62,7 @@ class BasicTechnicalAnalysis:
 
         self.technical_team = Team(
             name="Technical Analysis Team",
-            mode="collaborate",
+            mode="coordinate",  # collaborate, coordinate, route
             model=self.model,
             members=[macd_agent, bb_agent, rsi_agent],
             show_tool_calls=True,
@@ -75,7 +75,13 @@ class BasicTechnicalAnalysis:
                 "You will provide a summary of your analysis and trading advice.",
             ],
             show_members_responses=True,
-            response_model=TradeAdvice,
+            debug_mode=False,
+        )
+
+        self.final_agent = Agent(
+            name="Final Agent",
+            role="You are a final agent that summarizes the analysis and provides trading advice.",
+            model=self.model,
         )
 
     def analyze_image(
