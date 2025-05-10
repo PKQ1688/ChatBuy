@@ -8,6 +8,7 @@ from agno.agent import Agent
 from agno.media import Image
 from agno.models.azure import AzureOpenAI
 from agno.team.team import Team
+from agno.workflow import RunResponse, Workflow
 from pydantic import BaseModel
 
 
@@ -24,7 +25,7 @@ class TradeAdvice(BaseModel):
     reason: str
 
 
-class BasicTechnicalAnalysis:
+class BasicTechnicalAnalysis(Workflow):
     """Represents basic analysis of a chart."""
 
     def __init__(
@@ -44,23 +45,23 @@ class BasicTechnicalAnalysis:
 
         self.model = AzureOpenAI(id=model_name, temperature=temperature)
 
-        macd_agent = Agent(
+        macd_agent: Agent = Agent(
             name="MACD Agent",
             role=macd_prompt,
             model=self.model,
         )
-        bb_agent = Agent(
+        bb_agent: Agent = Agent(
             name="BB Agent",
             role=bb_prompt,
             model=self.model,
         )
-        rsi_agent = Agent(
+        rsi_agent: Agent = Agent(
             name="RSI Agent",
             role=rsi_prompt,
             model=self.model,
         )
 
-        self.technical_team = Team(
+        self.technical_team: Team = Team(
             name="Technical Analysis Team",
             mode="coordinate",  # collaborate, coordinate, route
             model=self.model,
@@ -74,34 +75,28 @@ class BasicTechnicalAnalysis:
                 "You will work together to provide a comprehensive analysis.",
                 "You will provide a summary of your analysis and trading advice.",
             ],
-            show_members_responses=True,
+            show_members_responses=False,
             debug_mode=False,
         )
 
-        self.final_agent = Agent(
-            name="Final Agent",
-            role="You are a final agent that summarizes the analysis and provides trading advice.",
-            model=self.model,
-        )
-
-    def analyze_image(
+    def run(
         self,
         kline_date: str = None,
         image_path: str = None,
         prompt: str = "Please analyze this K-line chart and provide your trading advice.",
-    ):
+    ) -> TradeAdvice:
         """Analyzes a single image and returns its path and AI analysis result."""
         if image_path is None:
             image_path = f"data/btc_daily_refactored/btc_daily_{kline_date}_len120.png"
 
         if not os.path.exists(image_path):
-            return {"image": image_path, "result": f"Image not found at {image_path}."}
+            raise {"image": image_path, "result": f"Image not found at {image_path}."}
 
         if not os.path.isfile(image_path):
-            return {"image": image_path, "result": f"Path {image_path} is not a file."}
+            raise {"image": image_path, "result": f"Path {image_path} is not a file."}
 
         images = [Image(filepath=image_path)]
-        response = asyncio.run(
+        response: RunResponse = asyncio.run(
             self.technical_team.arun(
                 message=prompt,
                 images=images,
@@ -109,11 +104,47 @@ class BasicTechnicalAnalysis:
                 stream_intermediate_steps=False,
             )
         )
-        return response.content
+
+        final_analysis = response.content
+        return final_analysis
+
+
+class AnalysisRunner:
+    """A class to run the analysis and provide trading advice."""
+
+    def __init__(self, model_name: str = "gpt-4o-1120", temperature: float = 0.1):
+        self.analysis = BasicTechnicalAnalysis(
+            model_name=model_name, temperature=temperature
+        )
+        self.model = AzureOpenAI(id=model_name, temperature=temperature)
+        self.final_agent = Agent(
+            description="You need to provide the final trading advice based on the previous analysis.",
+            model=self.model,
+            response_model=TradeAdvice,
+            debug_mode=True,
+            # use_json_mode=True,
+        )
+
+    def run(
+        self,
+        kline_date: str = None,
+        image_path: str = None,
+        prompt: str = "Please analyze this K-line chart and provide your trading advice.",
+    ) -> TradeAdvice:
+        analysis_res = self.analysis.run(
+            kline_date=kline_date,
+            image_path=image_path,
+            prompt=prompt,
+        )
+
+        final_response = self.final_agent.run(message=analysis_res)
+        final_res = final_response.content
+
+        return final_res
 
 
 if __name__ == "__main__":
     # Example usage
-    analysis = BasicTechnicalAnalysis()
-    result = analysis.analyze_image(kline_date="20180116")
+    analysis = AnalysisRunner()
+    result = analysis.run(kline_date="20180116")
     print(result)
