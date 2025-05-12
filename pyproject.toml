@@ -12,7 +12,6 @@ dependencies = [
   "agno>=1.4.5",
   "aiohttp>=3.10.11",
   "azure-ai-inference>=1.0.0b9",
-  "backtesting>=0.6.4",
   "ccxt>=4.4.65",
   "gradio>=5.25.2",
   "httpx>=0.28.1",

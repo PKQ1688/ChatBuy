@@ -1,44 +1,23 @@
 import pandas as pd
-from backtesting import Backtest, Strategy
-from backtesting.lib import crossover
+import vectorbt as vbt
 
+# 读取数据
+df = pd.read_csv(
+    "data/BTC_USDT_1d_with_indicators.csv", index_col=0, parse_dates=True
+)
+df = df.dropna(subset=["Close", "bb_upper", "bb_middle", "bb_lower", "rsi"])
 
-class BollingerRsiStrategy(Strategy):
-    """Trading strategy using only Bollinger Bands and RSI.
+close = df["Close"]
+bb_upper = df["bb_upper"]
+bb_lower = df["bb_lower"]
+rsi = df["rsi"]
 
-    Indicators are calculated with talipp, crossovers use Backtest built-in methods.
-    """
+# 入场信号: 收盘价上穿下轨 且 RSI上穿30
+entries = (close.vbt.crossed_above(bb_lower)) & (rsi.vbt.crossed_above(30))
+# 离场信号: 收盘价下穿上轨 且 RSI下穿70
+exits = (close.vbt.crossed_below(bb_upper)) & (rsi.vbt.crossed_below(70))
 
-    def init(self):
-        # 直接从数据中读取已存在的指标列
-        self.bb_upper = self.data.bb_upper
-        self.bb_mid = self.data.bb_middle
-        self.bb_lower = self.data.bb_lower
-        self.rsi = self.data.rsi
+# 回测
+pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.002, init_cash=1_000_000)
 
-    def next(self):
-        # Buy: Close crosses above BB lower band and RSI crosses above 30
-        # Sell: Close crosses below BB upper band and RSI crosses below 70
-        if crossover(self.data.Close, self.bb_lower) and crossover(self.rsi, 30):
-            self.buy()
-        elif crossover(self.bb_upper, self.data.Close) and crossover(70, self.rsi):
-            self.sell()
-
-
-if __name__ == "__main__":
-    # Read raw data
-    df = pd.read_csv(
-        "data/BTC_USDT_1d_with_indicators.csv", index_col=0, parse_dates=True
-    )
-    # 只保留所有指标和价格都非 NaN 的数据
-    df = df.dropna(subset=["Close", "bb_upper", "bb_middle", "bb_lower", "rsi"])
-
-    bt = Backtest(
-        df,
-        BollingerRsiStrategy,
-        commission=0.002,
-        exclusive_orders=True,
-        cash=1_000_000,
-    )
-    stats = bt.run()
-    print(stats)
+print(pf.stats())
