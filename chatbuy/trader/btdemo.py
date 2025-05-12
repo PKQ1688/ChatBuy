@@ -10,8 +10,8 @@ class MaCross:
     vbt.settings.portfolio["slippage"] = 0.0025  # 0.25%
 
     def __init__(self):
-        start = "2019-01-01 UTC"  # crypto is in UTC
-        end = "2020-01-01 UTC"
+        start = "2017-01-01 UTC"  # crypto is in UTC
+        end = "2025-05-12 UTC"
         self.price = vbt.YFData.download("BTC-USD", start=start, end=end).get("Close")
 
         self.fast_ma = vbt.MA.run(self.price, 5, short_name="fast")
@@ -37,8 +37,8 @@ class MacdBullishDivergence:
     vbt.settings.portfolio["slippage"] = 0.0025
 
     def __init__(self):
-        start = "2019-01-01 UTC"
-        end = "2020-01-01 UTC"
+        start = "2017-01-01 UTC"  # crypto is in UTC
+        end = "2025-05-12 UTC"
         self.price = vbt.YFData.download("BTC-USD", start=start, end=end).get("Close")
 
         # 计算MACD
@@ -89,6 +89,8 @@ if __name__ == "__main__":
     print(f"loading data took {time.time() - start_time:.4f} seconds")
     pf_macd = macd_div.run()
     print(pf_macd.stats())
+
+    breakpoint()
     pf_macd.plot().show()
     end_time = time.time()
     print(f"MACD底背离策略执行时间: {end_time - start_time:.4f} seconds")
