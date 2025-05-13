@@ -86,6 +86,7 @@ class MacdBullishDivergence(BaseStrategy):
         macd_indicator = vbt.MACD.run(self.price)
         self.macd_line = macd_indicator.macd
         self.signal_line = macd_indicator.signal
+        self.macd_hist = macd_indicator.hist  # 红绿柱子
         self.init_entries_exits()
 
     def init_entries_exits(self):
@@ -93,12 +94,13 @@ class MacdBullishDivergence(BaseStrategy):
         self.exits = self.detect_macd_weaker_cross(buy=False)
 
     def detect_macd_weaker_cross(self, buy=True):
-        # buy=True: 死叉变弱后等金叉买入；buy=False: 金叉变弱后等死叉卖出
+        # buy=True: 死叉柱子更弱后等金叉买入；buy=False: 金叉柱子更强后等死叉卖出
         macd = self.macd_line.values
         signal = self.signal_line.values
+        hist = self.macd_hist.values  # 红绿柱子
         n = len(macd)
         cross_idx = []
-        cross_macd = []
+        cross_hist = []
 
         # 找所有死叉（金叉）点
         for i in range(1, n):
@@ -106,28 +108,27 @@ class MacdBullishDivergence(BaseStrategy):
                 # 死叉: macd从上穿到下
                 if macd[i-1] > signal[i-1] and macd[i] <= signal[i]:
                     cross_idx.append(i)
-                    cross_macd.append(macd[i])
+                    cross_hist.append(hist[i])
             else:
                 # 金叉: macd从下穿到上
                 if macd[i-1] < signal[i-1] and macd[i] >= signal[i]:
                     cross_idx.append(i)
-                    cross_macd.append(macd[i])
+                    cross_hist.append(hist[i])
 
-        # 检查本次死叉（金叉）是否比上一次更弱（更低/更高）
+        # 检查本次死叉（金叉）柱子是否比上一次更弱（更低/更高）
         signal_points = []
         for j in range(1, len(cross_idx)):
             if buy:
-                # 死叉更弱（更低）
-                if cross_macd[j] < cross_macd[j-1]:
+                # 死叉柱子更弱（更低）
+                if cross_hist[j] < cross_hist[j-1]:
                     # 在下一个金叉买入
-                    # 找下一个金叉
                     for k in range(cross_idx[j], n):
                         if macd[k-1] < signal[k-1] and macd[k] >= signal[k]:
                             signal_points.append(k)
                             break
             else:
-                # 金叉更弱（更高）
-                if cross_macd[j] > cross_macd[j-1]:
+                # 金叉柱子更强（更高）
+                if cross_hist[j] > cross_hist[j-1]:
                     # 在下一个死叉卖出
                     for k in range(cross_idx[j], n):
                         if macd[k-1] > signal[k-1] and macd[k] <= signal[k]:
