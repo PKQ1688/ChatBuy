@@ -9,13 +9,19 @@ class BaseStrategy:
     vbt.settings.portfolio["fees"] = 0.001  # 0.1%
     vbt.settings.portfolio["slippage"] = 0.0025  # 0.25%
 
-    def __init__(self, symbol="BTC-USD", start="2022-01-01 UTC", end="2024-01-01 UTC"): # 更新默认日期范围
+    def __init__(
+        self, symbol="BTC-USD", start="2022-01-01 UTC", end="2024-01-01 UTC"
+    ):  # 更新默认日期范围
         self.symbol = symbol
         self.start = start
         self.end = end
-        self.price = vbt.YFData.download(self.symbol, start=self.start, end=self.end).get("Close")
+        self.price = vbt.YFData.download(
+            self.symbol, start=self.start, end=self.end
+        ).get("Close")
         if self.price is None or self.price.empty:
-            print(f"警告: 未能加载 {self.symbol} 从 {self.start} 到 {self.end} 的价格数据。")
+            print(
+                f"警告: 未能加载 {self.symbol} 从 {self.start} 到 {self.end} 的价格数据。"
+            )
             # 考虑是否在此处引发异常或允许程序继续（可能会在后续步骤失败）
         self.entries = None
         self.exits = None
@@ -28,11 +34,19 @@ class BaseStrategy:
         """Run the backtest and return the portfolio."""
         if self.entries is None or self.exits is None:
             self.init_entries_exits()
-        
+
         # 确保 entries 和 exits 是布尔类型的 NumPy 数组
-        entries_np = self.entries.values.astype(bool) if isinstance(self.entries, pd.Series) else self.entries.astype(bool)
-        exits_np = self.exits.values.astype(bool) if isinstance(self.exits, pd.Series) else self.exits.astype(bool)
-        
+        entries_np = (
+            self.entries.values.astype(bool)
+            if isinstance(self.entries, pd.Series)
+            else self.entries.astype(bool)
+        )
+        exits_np = (
+            self.exits.values.astype(bool)
+            if isinstance(self.exits, pd.Series)
+            else self.exits.astype(bool)
+        )
+
         pf = vbt.Portfolio.from_signals(self.price, entries_np, exits_np)
         return pf
 
@@ -40,7 +54,14 @@ class BaseStrategy:
 class MaCross(BaseStrategy):
     """A strategy that uses two moving averages to generate buy and sell signals."""
 
-    def __init__(self, symbol="BTC-USD", start="2022-01-01 UTC", end="2024-01-01 UTC", fast_window=5, slow_window=10): # 更新默认日期范围
+    def __init__(
+        self,
+        symbol="BTC-USD",
+        start="2022-01-01 UTC",
+        end="2024-01-01 UTC",
+        fast_window=5,
+        slow_window=10,
+    ):  # 更新默认日期范围
         super().__init__(symbol, start, end)
         self.fast_window = fast_window
         self.slow_window = slow_window
@@ -57,7 +78,9 @@ class MaCross(BaseStrategy):
 class MacdBullishDivergence(BaseStrategy):
     """MACD底背离策略：价格创新低但MACD未创新低，产生买入信号."""
 
-    def __init__(self, symbol="BTC-USD", start="2022-01-01 UTC", end="2024-01-01 UTC"): # 更新默认日期范围
+    def __init__(
+        self, symbol="BTC-USD", start="2022-01-01 UTC", end="2024-01-01 UTC"
+    ):  # 更新默认日期范围
         super().__init__(symbol, start, end)
         # 计算MACD
         macd_indicator = vbt.MACD.run(self.price)
@@ -66,34 +89,56 @@ class MacdBullishDivergence(BaseStrategy):
         self.init_entries_exits()
 
     def init_entries_exits(self):
-        self.entries = self.detect_bullish_divergence()
-        self.exits = self.detect_bearish_divergence() # 顶背离作为卖出信号
+        self.entries = self.detect_macd_weaker_cross(buy=True)
+        self.exits = self.detect_macd_weaker_cross(buy=False)
 
-    def detect_bullish_divergence(self):
-        # 简单检测底背离：价格创新低但MACD未创新低
-        price_vals = self.price.values
-        macd_vals = self.macd_line.values
-        entries = [False] * len(price_vals)
-        for i in range(2, len(price_vals)):
-            # 价格创新低
-            if price_vals[i] < price_vals[i - 1] and price_vals[i - 1] < price_vals[i - 2]:
-                # MACD未创新低
-                if macd_vals[i] > macd_vals[i - 1] and macd_vals[i - 1] < macd_vals[i - 2]:
-                    entries[i] = True
-        return pd.Series(entries, index=self.price.index)
+    def detect_macd_weaker_cross(self, buy=True):
+        # buy=True: 死叉变弱后等金叉买入；buy=False: 金叉变弱后等死叉卖出
+        macd = self.macd_line.values
+        signal = self.signal_line.values
+        n = len(macd)
+        cross_idx = []
+        cross_macd = []
 
-    def detect_bearish_divergence(self):
-        """检测顶背离：价格创新高但MACD未创新高，产生卖出信号."""
-        price_vals = self.price.values
-        macd_vals = self.macd_line.values
-        exits = [False] * len(price_vals)
-        for i in range(2, len(price_vals)):
-            # 价格创新高
-            if price_vals[i] > price_vals[i - 1] and price_vals[i - 1] > price_vals[i - 2]:
-                # MACD未创新高
-                if macd_vals[i] < macd_vals[i - 1] and macd_vals[i - 1] > macd_vals[i - 2]:
-                    exits[i] = True
-        return pd.Series(exits, index=self.price.index)
+        # 找所有死叉（金叉）点
+        for i in range(1, n):
+            if buy:
+                # 死叉: macd从上穿到下
+                if macd[i-1] > signal[i-1] and macd[i] <= signal[i]:
+                    cross_idx.append(i)
+                    cross_macd.append(macd[i])
+            else:
+                # 金叉: macd从下穿到上
+                if macd[i-1] < signal[i-1] and macd[i] >= signal[i]:
+                    cross_idx.append(i)
+                    cross_macd.append(macd[i])
+
+        # 检查本次死叉（金叉）是否比上一次更弱（更低/更高）
+        signal_points = []
+        for j in range(1, len(cross_idx)):
+            if buy:
+                # 死叉更弱（更低）
+                if cross_macd[j] < cross_macd[j-1]:
+                    # 在下一个金叉买入
+                    # 找下一个金叉
+                    for k in range(cross_idx[j], n):
+                        if macd[k-1] < signal[k-1] and macd[k] >= signal[k]:
+                            signal_points.append(k)
+                            break
+            else:
+                # 金叉更弱（更高）
+                if cross_macd[j] > cross_macd[j-1]:
+                    # 在下一个死叉卖出
+                    for k in range(cross_idx[j], n):
+                        if macd[k-1] > signal[k-1] and macd[k] <= signal[k]:
+                            signal_points.append(k)
+                            break
+
+        result = [False] * n
+        for idx in signal_points:
+            if idx < n:
+                result[idx] = True
+        return pd.Series(result, index=self.price.index)
 
 
 if __name__ == "__main__":
@@ -112,15 +157,29 @@ if __name__ == "__main__":
     # 运行MACD底背离策略
     print("\n--- MACD底背离策略回测 ---")
     start_time_macd = time.time()
-    macd_div = MacdBullishDivergence(symbol="BTC-USD", start="2022-01-01 UTC", end="2024-01-01 UTC") # 明确传递日期
+    macd_div = MacdBullishDivergence(
+        symbol="BTC-USD", start="2023-01-01 UTC", end="2025-06-01 UTC"
+    )  # 明确传递日期
     print(f"loading data took {time.time() - start_time_macd:.4f} seconds")
     if macd_div.price is not None and not macd_div.price.empty:
         pf_macd = macd_div.run()
         print(pf_macd.stats())
         print("\n--- MACD策略交易订单 ---")
-        print(pf_macd.orders)
+        print(pf_macd.orders.records)
+        # 打印每笔订单的日期、买卖方向和价格
+        orders = pf_macd.orders.records
+        price_index = macd_div.price.index
+        print("\n--- MACD策略订单详细（含日期） ---")
+        for _, row in orders.iterrows():
+            dt = price_index[int(row["idx"])]
+            side = "买入" if row["side"] == 0 else "卖出"
+            print(
+                f"{side} 日期: {dt.strftime('%Y-%m-%d %H:%M:%S')}, 价格: {row['price']:.2f}, 数量: {row['size']:.6f}"
+            )
+
         pf_macd.plot().show()
     else:
         print("由于未能加载价格数据，无法运行MACD策略回测。")
+
     end_time_macd = time.time()
     print(f"MACD底背离策略执行时间: {end_time_macd - start_time_macd:.4f} seconds")
