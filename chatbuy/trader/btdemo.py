@@ -504,45 +504,20 @@ class MacdBullishDivergence(BaseStrategy):
 if __name__ == "__main__":
     # import time
 
-    # print("\n--- MA Cross策略回测 ---")
-    # ma_cross = MaCross(
-    #     symbol="BTC-USD",
-    #     start="2023-01-01 UTC",
-    #     end="2025-06-01 UTC",
-    #     fast_window=14,
-    #     slow_window=21,
-    # )
-
-    # pf_ma = ma_cross.run()
-    # print(pf_ma.stats())
-    # # ma_cross.print_order_details(pf_ma)
-    # trades = pf_ma.trades.records_readable
-    # trades_subset = trades[
-    #     [
-    #         "Entry Timestamp",
-    #         "Avg Entry Price",
-    #         "Exit Timestamp",
-    #         "Avg Exit Price",
-    #         "PnL",
-    #         "Return",
-    #         "Direction",
-    #     ]
-    # ]
-    # print(trades_subset)
-
-    print("\n--- 海龟策略回测 ---")
-    turtle = TurtleStrategy(
+    print("\n--- MA Cross策略回测 ---")
+    ma_cross = MaCross(
         symbol="BTC-USD",
         start="2023-01-01 UTC",
         end="2025-06-01 UTC",
-        entry_window=20,
-        exit_window=10,
-        atr_window=20,
-        risk_pct=0.01,
+        fast_window=14,
+        slow_window=21,
     )
-    pf_turtle = turtle.run()
-    print(pf_turtle.stats())
-    trades_turtle = pf_turtle.trades.records_readable[
+
+    pf_ma = ma_cross.run()
+    print(pf_ma.stats())
+    # ma_cross.print_order_details(pf_ma)
+    trades = pf_ma.trades.records_readable
+    trades_subset = trades[
         [
             "Entry Timestamp",
             "Avg Entry Price",
@@ -553,7 +528,32 @@ if __name__ == "__main__":
             "Direction",
         ]
     ]
-    print(trades_turtle)
+    print(trades_subset)
+
+    # print("\n--- 海龟策略回测 ---")
+    # turtle = TurtleStrategy(
+    #     symbol="BTC-USD",
+    #     start="2023-01-01 UTC",
+    #     end="2025-06-01 UTC",
+    #     entry_window=20,
+    #     exit_window=10,
+    #     atr_window=20,
+    #     risk_pct=0.01,
+    # )
+    # pf_turtle = turtle.run()
+    # print(pf_turtle.stats())
+    # trades_turtle = pf_turtle.trades.records_readable[
+    #     [
+    #         "Entry Timestamp",
+    #         "Avg Entry Price",
+    #         "Exit Timestamp",
+    #         "Avg Exit Price",
+    #         "PnL",
+    #         "Return",
+    #         "Direction",
+    #     ]
+    # ]
+    # print(trades_turtle)
 
     # pf_ma.plot().show()
 
