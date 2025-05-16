@@ -22,6 +22,7 @@
         "labelbottom",
         "linestyle",
         "logfire",
+        "lookback",
         "MACD",
         "matplotlib",
         "mdates",
