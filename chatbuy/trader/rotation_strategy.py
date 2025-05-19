@@ -71,67 +71,52 @@ class RotationStrategy:
         return self.prices.pct_change(self.lookback_period).fillna(0)
 
     def init_entries_exits(self):
-        """根据轮动策略初始化买入卖出信号.
-
-        策略比较过去周期的回报率，投资于表现最佳的资产（若回报为正）；
-        若所有资产回报均为负，则持有现金.
-        """
-        # 计算回报率
+        """根据轮动策略初始化买入卖出信号（整体轮动，仅持有一个币或空仓）."""
         returns_df = self.calculate_returns()
-
-        # 使用向量化操作找出每天回报率最高的资产
         best_assets = returns_df.idxmax(axis=1)
         best_returns = returns_df.max(axis=1)
-
-        # 跟踪当前持有的资产
-        active_symbol = None
         trading_dates = returns_df.index[self.lookback_period :]
-
+        # 构建整体持仓DataFrame
+        self.positions = pd.DataFrame(
+            False, index=self.common_index, columns=self.symbols
+        )
         for date in trading_dates:
             best_symbol = best_assets[date]
             best_return = best_returns[date]
-
-            # 更新信号
-            if best_return > 0:  # 只在正回报时投资
-                if active_symbol and active_symbol != best_symbol:
-                    # 切换资产: 卖出旧资产，买入新资产
-                    self.exits[active_symbol].loc[date] = True
-                    self.entries[best_symbol].loc[date] = True
-                    active_symbol = best_symbol
-                elif not active_symbol:
-                    # 初始买入
-                    self.entries[best_symbol].loc[date] = True
-                    active_symbol = best_symbol
-            elif active_symbol:
-                # 所有资产回报为负: 清仓
-                self.exits[active_symbol].loc[date] = True
-                active_symbol = None
+            if best_return > 0:
+                # 只持有表现最好的币
+                self.positions.loc[date, :] = False
+                self.positions.loc[date, best_symbol] = True
+            else:
+                # 空仓
+                self.positions.loc[date, :] = False
+        # 生成entries/exits信号（用于可视化等）
+        self.entries = {
+            symbol: (
+                self.positions[symbol]
+                & ~self.positions[symbol].shift(1, fill_value=False)
+            )
+            for symbol in self.symbols
+        }
+        self.exits = {
+            symbol: (
+                ~self.positions[symbol]
+                & self.positions[symbol].shift(1, fill_value=False)
+            )
+            for symbol in self.symbols
+        }
 
     def run(self):
-        """执行回测并返回投资组合."""
-        # 为每个资产创建独立的投资组合
-        portfolios = {}
-
-        for symbol in self.symbols:
-            # 确保信号是布尔数组
-            entries_arr = self.entries[symbol].values.astype(bool)
-            exits_arr = self.exits[symbol].values.astype(bool)
-
-            # 创建单资产投资组合
-            pf = vbt.Portfolio.from_signals(
-                self.prices[symbol],
-                entries=entries_arr,
-                exits=exits_arr,
-                init_cash=vbt.settings.portfolio["init_cash"],
-                fees=vbt.settings.portfolio["fees"],
-                slippage=vbt.settings.portfolio["slippage"],
-            )
-            portfolios[symbol] = pf
-
-        # 使用第一个资产的投资组合作为主投资组合
-        self.portfolio = portfolios[self.symbols[0]]
-        self.all_portfolios = portfolios
-
+        """执行回测并返回整体轮动投资组合."""
+        # 用整体持仓矩阵生成Portfolio
+        self.portfolio = vbt.Portfolio.from_signals(
+            self.prices,
+            entries=self.positions.shift(1, fill_value=False),  # 避免未来函数
+            exits=~self.positions.shift(1, fill_value=False),
+            init_cash=vbt.settings.portfolio["init_cash"],
+            fees=vbt.settings.portfolio["fees"],
+            slippage=vbt.settings.portfolio["slippage"],
+        )
         return self.portfolio
 
     def visualize(self):
@@ -178,10 +163,12 @@ class RotationStrategy:
         axes[0].axhline(y=0, color="k", linestyle="-", alpha=0.2)
 
         # 2. 绘制回撤
-        drawdown = self.portfolio.drawdown()
-        axes[1].fill_between(
-            drawdown.index, 0, -drawdown.values * 100, color="r", alpha=0.5
-        )
+        # 获取总体投资组合drawdown - 对全部列计算平均值
+        drawdown = self.portfolio.drawdown().mean(axis=1)  # 对所有资产的drawdown取平均
+        # 保证x/y长度一致，避免fill_between报错
+        dd_index = drawdown.index
+        dd_values = -drawdown.values * 100  # 转为正值百分比
+        axes[1].fill_between(dd_index, 0, dd_values, color="r", alpha=0.5)
         axes[1].set_title("Rotation Strategy: Drawdown")
         axes[1].set_ylabel("Drawdown (%)")
         axes[1].set_xlabel("Date")
@@ -220,7 +207,8 @@ class RotationStrategy:
         if self.portfolio is None:
             self.run()
 
-        return self.portfolio.stats()
+        # 获取整体统计数据
+        return self.portfolio.stats(metrics=None)
 
     def run_and_visualize(self):
         """运行策略并可视化结果."""

@@ -77,7 +77,7 @@ if __name__ == "__main__":
     ma_cross = MaCross(
         symbol="BTC-USD",
         start="2023-01-01 UTC",
-        end="2025-06-01 UTC",
+        end="2025-01-01 UTC",
         fast_window=7,
         slow_window=14,
     )

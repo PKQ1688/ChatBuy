@@ -134,7 +134,7 @@ if count_combined > 0:
 
 # 统计每次MACD柱子连续为负的区间内，满足所有条件的K线平均数量
 def analyze_consecutive_negative_macd():
-    """分析每次MACD柱子连续为负期间满足条件的K线情况。
+    """分析每次MACD柱子连续为负期间满足条件的K线情况.
 
     该函数会计算每一次MACD柱子连续为负的区间内，
     满足所有条件（股价在年线以上 & MACD柱状为负 & 日跌幅超过1%）的K线平均数量。
