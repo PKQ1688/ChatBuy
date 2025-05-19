@@ -70,18 +70,50 @@ class MaCross(BaseStrategy):
         self.exits = self.fast_ma.ma_crossed_below(self.slow_ma)
 
 
-if __name__ == "__main__":
-    # import time
+def optimize_ma_params(symbol="BTC-USD", start="2022-01-01 UTC", end="2024-01-01 UTC", fast_range=range(3, 20, 2), slow_range=range(10, 50, 5), metric="Total Return"):
+    """遍历不同均线参数，返回表现最好的参数组合和结果."""
+    results = []
+    for fast in fast_range:
+        for slow in slow_range:
+            if fast >= slow:
+                continue  # 快线必须小于慢线
+            ma_cross = MaCross(symbol=symbol, start=start, end=end, fast_window=fast, slow_window=slow)
+            pf = ma_cross.run()
+            stats = pf.stats()
+            results.append({
+                "fast": fast,
+                "slow": slow,
+                "stats": stats
+            })
+    # 选出最佳参数
+    best = max(results, key=lambda x: x["stats"][metric])
+    print(f"最佳参数: fast={best['fast']}, slow={best['slow']}, {metric}={best['stats'][metric]:.2f}")
+    
+    # 打印一次 stats 的 keys 以便用户选择正确的 metric
+    if results:
+        print("可用的评估指标:", list(results[0]["stats"].index))
+        
+    return best
 
-    print("\n--- MA Cross策略回测 ---")
+
+if __name__ == "__main__":
+    print("\n--- MA Cross参数优化 ---")
+    best = optimize_ma_params(
+        symbol="BTC-USD",
+        start="2023-01-01 UTC",
+        end="2025-01-01 UTC",
+        fast_range=range(3, 20, 2),
+        slow_range=range(10, 30, 2),
+        metric="Total Return [%]"  # 你可以改为 "Sharpe Ratio" 等
+    )
+    print("\n--- 最佳参数回测结果 ---")
     ma_cross = MaCross(
         symbol="BTC-USD",
         start="2023-01-01 UTC",
         end="2025-01-01 UTC",
-        fast_window=7,
-        slow_window=14,
+        fast_window=best["fast"],
+        slow_window=best["slow"],
     )
-
     pf_ma = ma_cross.run()
     print(pf_ma.stats())
     trades = pf_ma.trades.records_readable
