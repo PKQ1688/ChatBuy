@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import pandas as pd
 import vectorbt as vbt
 
@@ -6,14 +5,9 @@ import vectorbt as vbt
 class RotationStrategy:
     """资产轮动策略：基于历史表现在不同资产间进行选择.
 
-    该策略基于BTC和ETH在过去20天的表现进行切换，只投资于表现较好且回报为正的加密货币.
+    该策略基于BTC和ETH在过去N天的表现进行切换，只投资于表现较好且回报为正的加密货币.
     若两者回报均为负，则持有现金.
     """
-
-    # 投资组合设置
-    vbt.settings.portfolio["init_cash"] = 10000.0
-    vbt.settings.portfolio["fees"] = 0.001
-    vbt.settings.portfolio["slippage"] = 0.0025
 
     def __init__(
         self,
@@ -21,6 +15,9 @@ class RotationStrategy:
         start="2022-01-01 UTC",
         end="2024-01-01 UTC",
         lookback_period=20,
+        init_cash=10000.0,
+        fees=0.001,
+        slippage=0.0025,
     ):
         """初始化轮动策略.
 
@@ -29,213 +26,179 @@ class RotationStrategy:
             start: 回测起始日期
             end: 回测结束日期
             lookback_period: 计算表现的历史周期（天数）
+            init_cash: 初始资金
+            fees: 交易费用率
+            slippage: 滑点
         """
-        # 基础设置
         self.symbols = symbols
         self.start = start
         self.end = end
         self.lookback_period = lookback_period
+        self.init_cash = init_cash
+        self.fees = fees
+        self.slippage = slippage
         self.portfolio = None
+        self.buy_hold_portfolios = {}
 
-        # 数据准备与信号初始化
-        self._prepare_price_data()
-        self._initialize_signals()
-        self.init_entries_exits()
+        # 获取数据并生成信号
+        self._prepare_data()
+        self._generate_signals()
 
-    def _initialize_signals(self):
-        """初始化交易信号."""
-        # 为每个资产创建空的信号Series
-        self.entries = {
-            symbol: pd.Series(False, index=self.common_index) for symbol in self.symbols
-        }
-        self.exits = {
-            symbol: pd.Series(False, index=self.common_index) for symbol in self.symbols
-        }
-
-    def _prepare_price_data(self):
-        """获取并对齐所有资产的价格数据."""
-        # 并行下载所有资产的价格数据
+    def _prepare_data(self):
+        """获取并处理价格数据."""
+        # 下载价格数据
         self.data = vbt.YFData.download(self.symbols, start=self.start, end=self.end)
-
-        # 提取收盘价并确保所有数据使用相同索引
         self.prices = self.data.get("Close")
-        self.common_index = self.prices.index
 
-        # 检查并处理缺失值
+        # 处理缺失值
         if self.prices.isna().any().any():
             self.prices = self.prices.dropna(how="any")
 
-    def calculate_returns(self):
-        """计算每个资产在历史周期内的回报率."""
-        # 直接使用DataFrame的pct_change方法
-        return self.prices.pct_change(self.lookback_period).fillna(0)
+    def _generate_signals(self):
+        """生成轮动策略的交易信号."""
+        # 计算滚动收益率，填充NaN为0
+        returns = self.prices.pct_change(self.lookback_period).fillna(0)
 
-    def init_entries_exits(self):
-        """根据轮动策略初始化买入卖出信号（整体轮动，仅持有一个币或空仓）."""
-        returns_df = self.calculate_returns()
-        best_assets = returns_df.idxmax(axis=1)
-        best_returns = returns_df.max(axis=1)
-        trading_dates = returns_df.index[self.lookback_period :]
-        # 构建整体持仓DataFrame
-        self.positions = pd.DataFrame(
-            False, index=self.common_index, columns=self.symbols
+        # 找到每日表现最好的资产（使用前一天的数据）
+        best_asset_idx = returns.idxmax(axis=1)
+        best_returns = returns.max(axis=1)
+
+        # 生成目标权重矩阵（每次只持有一个资产或空仓）
+        target_weights = pd.DataFrame(
+            0.0, index=self.prices.index, columns=self.symbols
         )
-        for date in trading_dates:
-            best_symbol = best_assets[date]
-            best_return = best_returns[date]
-            if best_return > 0:
-                # 只持有表现最好的币
-                self.positions.loc[date, :] = False
-                self.positions.loc[date, best_symbol] = True
-            else:
-                # 空仓
-                self.positions.loc[date, :] = False
-        # 生成entries/exits信号（用于可视化等）
-        self.entries = {
-            symbol: (
-                self.positions[symbol]
-                & ~self.positions[symbol].shift(1, fill_value=False)
-            )
-            for symbol in self.symbols
-        }
-        self.exits = {
-            symbol: (
-                ~self.positions[symbol]
-                & self.positions[symbol].shift(1, fill_value=False)
-            )
-            for symbol in self.symbols
-        }
+
+        # 从lookback_period+1开始设置权重，避免前瞻偏差
+        for i in range(self.lookback_period + 1, len(self.prices)):
+            date = self.prices.index[i]
+            # 使用前一天的信号来决定今天的仓位
+            prev_best_asset = best_asset_idx.iloc[i - 1]
+            prev_best_return = best_returns.iloc[i - 1]
+
+            # 明确处理所有情况
+            if prev_best_return > 0:  # 有正回报的资产
+                target_weights.loc[date, prev_best_asset] = 1.0
+            # 其他情况保持0权重（持有现金）
+
+        self.target_weights = target_weights
 
     def run(self):
-        """执行回测并返回整体轮动投资组合."""
-        # 用整体持仓矩阵生成Portfolio
+        """执行回测."""
+        # 计算仓位变化以生成买入/卖出信号
+        position_changes = self.target_weights.diff().fillna(self.target_weights)
+
+        # 使用vectorbt的Portfolio.from_signals创建轮动策略组合
+        entries = position_changes > 0  # 买入信号
+        exits = position_changes < 0  # 卖出信号
+
         self.portfolio = vbt.Portfolio.from_signals(
             self.prices,
-            entries=self.positions.shift(1, fill_value=False),  # 避免未来函数
-            exits=~self.positions.shift(1, fill_value=False),
-            init_cash=vbt.settings.portfolio["init_cash"],
-            fees=vbt.settings.portfolio["fees"],
-            slippage=vbt.settings.portfolio["slippage"],
+            entries=entries,
+            exits=exits,
+            size=1.0,  # 全仓操作
+            size_type="percent",
+            fees=self.fees,
+            slippage=self.slippage,
+            slippage_type="percent",  # 明确滑点类型为百分比
+            init_cash=self.init_cash,
+            cash_sharing=True,  # 多资产共享现金
+            freq="1D",  # 明确设置频率为1天
+            stop_loss=0.1,  # 10%止损
+            stop_exit_price="close",  # 使用收盘价执行止损
+            log=True,  # 启用交易日志
         )
+
+        # 创建买入持有策略作为对比
+        for symbol in self.symbols:
+            self.buy_hold_portfolios[symbol] = vbt.Portfolio.from_holding(
+                self.prices[symbol],
+                init_cash=self.init_cash,
+                fees=self.fees,
+                slippage=self.slippage,
+                freq="1D",  # 明确设置频率
+            )
+
         return self.portfolio
 
     def visualize(self):
-        """可视化投资组合表现."""
+        """使用vectorbt原生功能可视化投资组合表现."""
         if self.portfolio is None:
             self.run()
 
-        # 创建图表：两个子图 - 收益率对比和回撤
-        fig, axes = plt.subplots(2, 1, figsize=(14, 14))
+        # 使用vectorbt原生的绘图功能
+        # 1. 绘制投资组合价值曲线（去掉不支持分组数据的图表）
+        fig = self.portfolio.plot(subplots=["cum_returns", "drawdowns"])
+        fig.show()
 
-        # 1. 绘制收益率对比图 - 策略vs原始资产
-        # 计算策略的累计收益率曲线
-        strategy_returns = (
-            self.portfolio.value() / vbt.settings.portfolio["init_cash"]
-        ) - 1
+        # 2. 绘制与买入持有策略的对比
+        all_values = pd.DataFrame()
+        all_values["Rotation Strategy"] = self.portfolio.value()
 
-        # 计算原始资产的累计收益率曲线（假设从起点开始买入持有）
-        asset_returns = {}
         for symbol in self.symbols:
-            normalized = self.prices[symbol] / self.prices[symbol].iloc[0] - 1
-            asset_returns[symbol] = normalized
+            all_values[f"{symbol} Buy&Hold"] = self.buy_hold_portfolios[symbol].value()
 
-        # 绘制累计收益率对比
-        axes[0].plot(
-            strategy_returns.index,
-            strategy_returns.values * 100,
-            "b-",
-            linewidth=2,
-            label="Rotation Strategy",
-        )
-        for symbol in self.symbols:
-            axes[0].plot(
-                asset_returns[symbol].index,
-                asset_returns[symbol].values * 100,
-                "--",
-                linewidth=1.5,
-                label=f"{symbol} Buy & Hold",
-            )
-
-        axes[0].set_title("Cumulative Returns: Strategy vs Assets", fontsize=14)
-        axes[0].set_ylabel("Return (%)")
-        axes[0].grid(True, alpha=0.3)
-        axes[0].legend(loc="upper left")
-        axes[0].axhline(y=0, color="k", linestyle="-", alpha=0.2)
-
-        # 2. 绘制回撤
-        # 获取总体投资组合drawdown - 对全部列计算平均值
-        drawdown = self.portfolio.drawdown().mean(axis=1)  # 对所有资产的drawdown取平均
-        # 保证x/y长度一致，避免fill_between报错
-        dd_index = drawdown.index
-        dd_values = -drawdown.values * 100  # 转为正值百分比
-        axes[1].fill_between(dd_index, 0, dd_values, color="r", alpha=0.5)
-        axes[1].set_title("Rotation Strategy: Drawdown")
-        axes[1].set_ylabel("Drawdown (%)")
-        axes[1].set_xlabel("Date")
-        axes[1].grid(True, alpha=0.3)
-
-        # 添加投资组合统计概要
-        stats = self.get_stats()
-
-        # 给主要资产计算买入持有收益
-        buyhold_returns = {}
-        for symbol in self.symbols:
-            first_price = self.prices[symbol].iloc[0]
-            last_price = self.prices[symbol].iloc[-1]
-            buyhold_returns[symbol] = (last_price / first_price - 1) * 100
-
-        # 创建统计摘要文字
-        summary_text = (
-            f"Strategy Total Return: {stats['Total Return [%]']:.2f}%\n"
-            f"Max Drawdown: {stats['Max Drawdown [%]']:.2f}%\n"
-            f"Sharpe Ratio: {stats['Sharpe Ratio']:.2f}\n\n"
-        )
-
-        # 添加每个资产的买入持有收益
-        for symbol in self.symbols:
-            summary_text += (
-                f"{symbol} Buy & Hold Return: {buyhold_returns[symbol]:.2f}%\n"
-            )
-
-        fig.text(0.01, 0.01, summary_text, fontsize=10)
-        plt.tight_layout()
-        plt.subplots_adjust(bottom=0.12)  # 为底部文本留出空间
-        plt.show()
+        # 使用vectorbt绘制价值曲线对比
+        fig_comp = all_values.vbt.plot(title="Strategy vs Buy & Hold Value Comparison")
+        fig_comp.show()
 
     def get_stats(self):
         """返回投资组合统计数据."""
         if self.portfolio is None:
             self.run()
 
-        # 获取整体统计数据
-        return self.portfolio.stats(metrics=None)
+        # 使用vectorbt原生统计功能
+        stats = {}
+        stats["rotation"] = self.portfolio.stats()
+
+        # 添加买入持有策略统计
+        for symbol in self.symbols:
+            stats[f"{symbol}_buyhold"] = self.buy_hold_portfolios[symbol].stats()
+
+        return stats
+
+    def print_stats(self):
+        """打印关键统计数据."""
+        stats = self.get_stats()
+
+        print("\n=== Rotation Strategy Results ===")
+        rotation_stats = stats["rotation"]
+
+        # 安全获取统计指标，处理可能的键名变化
+        total_return = rotation_stats.get(
+            "Total Return [%]", rotation_stats.get("Total Return", "N/A")
+        )
+        max_dd = rotation_stats.get(
+            "Max Drawdown [%]", rotation_stats.get("Max Drawdown", "N/A")
+        )
+        sharpe = rotation_stats.get("Sharpe Ratio", rotation_stats.get("Sharpe", "N/A"))
+        win_rate = rotation_stats.get(
+            "Win Rate [%]", rotation_stats.get("Win Rate", "N/A")
+        )
+
+        print(f"Total Return: {total_return}")
+        print(f"Max Drawdown: {max_dd}")
+        print(f"Sharpe Ratio: {sharpe}")
+        print(f"Win Rate: {win_rate}")
+
+        print("\n=== Buy & Hold Comparison ===")
+        for symbol in self.symbols:
+            bh_stats = stats[f"{symbol}_buyhold"]
+            bh_total_return = bh_stats.get(
+                "Total Return [%]", bh_stats.get("Total Return", "N/A")
+            )
+            bh_max_dd = bh_stats.get(
+                "Max Drawdown [%]", bh_stats.get("Max Drawdown", "N/A")
+            )
+            bh_sharpe = bh_stats.get("Sharpe Ratio", bh_stats.get("Sharpe", "N/A"))
+
+            print(
+                f"{symbol} - Total Return: {bh_total_return}, Max DD: {bh_max_dd}, Sharpe: {bh_sharpe}"
+            )
 
     def run_and_visualize(self):
         """运行策略并可视化结果."""
         self.run()
-
-        # 输出统计结果
-        print("\n=== Rotation Strategy Results ===")
-        stats = self.get_stats()
-        important_metrics = [
-            "Total Return [%]",
-            "Max Drawdown [%]",
-            "Sharpe Ratio",
-            "Win Rate [%]",
-            "Profit Factor",
-        ]
-        for metric in important_metrics:
-            print(f"{metric}: {stats[metric]:.4f}")
-
-        # 计算并显示原始资产的买入持有收益
-        print("\n=== Buy & Hold Returns ===")
-        for symbol in self.symbols:
-            first_price = self.prices[symbol].iloc[0]
-            last_price = self.prices[symbol].iloc[-1]
-            roi = (last_price / first_price - 1) * 100
-            print(f"{symbol}: {roi:.4f}%")
-
-        # 显示图表
+        self.print_stats()
         self.visualize()
         return self.portfolio
 
