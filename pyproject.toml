@@ -9,19 +9,6 @@ description = "use gpt to chat with trading bot"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "agno>=1.4.5",
-  "aiohttp>=3.10.11",
-  "azure-ai-inference>=1.0.0b9",
-  "gradio>=5.25.2",
-  "httpx>=0.28.1",
-  "matplotlib>=3.10.1",
-  "mplfinance>=0.12.10b0",
-  "openai>=1.78.0",
-  "python-dotenv>=1.0.1",
-  "rich>=14.0.0",
-  "tabulate>=0.9.0",
-  "talipp>=2.5.0",
-  "yfinance>=0.2.60",
 ]
 authors = [
   {name = "adofe", email = "adofezhu@gmail.com"}
