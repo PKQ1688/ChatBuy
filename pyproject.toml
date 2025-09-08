@@ -9,6 +9,10 @@ description = "use gpt to chat with trading bot"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "rich",
+    "ruff",
+    "vectorbt>=0.28.1",
+    "yfinance>=0.2.65",
 ]
 authors = [
   {name = "adofe", email = "adofezhu@gmail.com"}
