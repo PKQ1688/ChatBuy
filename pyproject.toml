@@ -16,6 +16,8 @@ dependencies = [
     "ruff",
     "vectorbt>=0.28.1",
     "yfinance>=0.2.65",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
 ]
 authors = [
   {name = "adofe", email = "adofezhu@gmail.com"}

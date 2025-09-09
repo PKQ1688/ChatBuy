@@ -12,9 +12,4 @@ from .ui.cli import ChatBuyCLI
 __version__ = "0.1.1"
 __author__ = "adofe"
 
-__all__ = [
-    "ChatBuyCLI",
-    "StrategyParser", 
-    "StrategyFactory",
-    "BacktestEngine"
-]
+__all__ = ["ChatBuyCLI", "StrategyParser", "StrategyFactory", "BacktestEngine"]

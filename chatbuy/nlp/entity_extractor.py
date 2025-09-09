@@ -1,10 +1,15 @@
-import re
+import json
+import os
 from dataclasses import dataclass
+
+import openai
+from dotenv import load_dotenv
 
 
 @dataclass
 class ExtractedEntity:
     """Extracted entity from text."""
+
     entity_type: str
     value: int | float | str
     start_pos: int
@@ -12,66 +17,67 @@ class ExtractedEntity:
 
 
 class EntityExtractor:
-    """Extract trading parameters from natural language."""
-    
+    """Extract trading parameters from natural language using LLM."""
+
     def __init__(self):
-        self.patterns = {
-            "fast_period": [
-                r"快线.*?(\d+)",
-                r"短期.*?(\d+)",
-                r"fast.*?(\d+)",
-                r"短周期.*?(\d+)",
-                r"(\d+).*?日.*?快",
-            ],
-            "slow_period": [
-                r"慢线.*?(\d+)",
-                r"长期.*?(\d+)",
-                r"slow.*?(\d+)",
-                r"长周期.*?(\d+)",
-                r"(\d+).*?日.*?慢",
-            ],
-            "symbol": [
-                r"BTC|bitcoin|比特币",
-                r"ETH|ethereum|以太坊",
-                r"AAPL|apple|苹果",
-                r"TSLA|tesla|特斯拉",
-            ],
-            "rsi_period": [
-                r"rsi.*?(\d+)",
-                r"相对强弱.*?(\d+)",
-            ],
-            "rsi_lower": [
-                r"rsi.*?低于.*?(\d+)",
-                r"rsi.*?小于.*?(\d+)",
-                r"超卖.*?(\d+)",
-            ],
-            "rsi_upper": [
-                r"rsi.*?高于.*?(\d+)",
-                r"rsi.*?大于.*?(\d+)",
-                r"超买.*?(\d+)",
-            ],
-        }
-    
+        # Load environment variables
+        load_dotenv()
+
+        # Initialize OpenAI client (env vars may be absent during analysis)
+        api_key = os.getenv("API_KEY") or None
+        base_url = os.getenv("MODEL_URL") or None
+        self.client = openai.OpenAI(api_key=api_key, base_url=base_url)
+        self.model_name = os.getenv("MODEL_NAME", "gpt-4o-mini")
+        self.temperature = float(os.getenv("TEMPERATURE", "0.1"))
+        self.max_tokens = int(os.getenv("MAX_TOKENS", "1000"))
+
     def extract(self, text: str) -> dict[str, int | float | str]:
-        """Extract all entities from text."""
-        entities = {}
+        """Extract all entities from text using LLM."""
+        prompt = f"""
+        You are a trading strategy parameter extraction expert. Extract all relevant trading parameters from the following description.
         
-        for entity_type, patterns in self.patterns.items():
-            for pattern in patterns:
-                match = re.search(pattern, text, re.IGNORECASE)
-                if match:
-                    value = match.group(1)
-                    # Convert to appropriate type
-                    if entity_type in ["fast_period", "slow_period", "rsi_period"]:
-                        entities[entity_type] = int(value)
-                    elif entity_type in ["rsi_lower", "rsi_upper"]:
-                        entities[entity_type] = int(value)
-                    elif entity_type == "symbol":
-                        entities[entity_type] = self._normalize_symbol(match.group(0))
-                    break
+        User description: "{text}"
         
-        return entities
-    
+        Please respond with a JSON object containing the extracted parameters. Common parameters include:
+        - fast_period: Integer for fast moving average period
+        - slow_period: Integer for slow moving average period
+        - symbol: String for trading symbol (e.g., "BTC-USD", "ETH-USD", "AAPL")
+        - rsi_period: Integer for RSI period
+        - rsi_lower: Integer for RSI oversold threshold
+        - rsi_upper: Integer for RSI overbought threshold
+        
+        Examples:
+        - "双均线金叉买入，20日均线和50日均线" -> {{"fast_period": 20, "slow_period": 50}}
+        - "快线10日，慢线30日，金叉买入死叉卖出" -> {{"fast_period": 10, "slow_period": 30}}
+        - "RSI低于30买入" -> {{"rsi_lower": 30}}
+        - "BTC的双均线策略" -> {{"symbol": "BTC-USD", "fast_period": 20, "slow_period": 50}}
+        
+        If a parameter is not mentioned, don't include it in the JSON. Use default values in the calling code.
+        Respond with only the JSON object, no other text.
+        """
+
+        response = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a trading strategy parameter extraction expert. Respond with JSON only.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+        )
+
+        response_text = response.choices[0].message.content.strip()
+        result = json.loads(response_text)
+
+        # Normalize symbol if present
+        if "symbol" in result:
+            result["symbol"] = self._normalize_symbol(result["symbol"])
+
+        return result
+
     def _normalize_symbol(self, symbol: str) -> str:
         """Normalize symbol names."""
         symbol_map = {
@@ -89,22 +95,45 @@ class EntityExtractor:
             "特斯拉": "TSLA",
         }
         return symbol_map.get(symbol.lower(), symbol.upper())
-    
+
     def extract_ma_parameters(self, text: str) -> dict[str, int]:
-        """Specifically extract moving average parameters."""
-        entities = self.extract(text)
+        """Specifically extract moving average parameters using LLM."""
+        prompt = f"""
+        You are a trading strategy parameter extraction expert. Extract moving average parameters from the following description.
         
+        User description: "{text}"
+        
+        Please respond with a JSON object containing:
+        - fast_period: Integer for fast moving average period (default: 20 if not specified)
+        - slow_period: Integer for slow moving average period (default: 50 if not specified)
+        
+        Examples:
+        - "双均线金叉买入，20日均线和50日均线" -> {{"fast_period": 20, "slow_period": 50}}
+        - "快线10日，慢线30日" -> {{"fast_period": 10, "slow_period": 30}}
+        - "20和60日均线交叉" -> {{"fast_period": 20, "slow_period": 60}}
+        - "双均线策略" -> {{"fast_period": 20, "slow_period": 50}}
+        
+        Respond with only the JSON object, no other text.
+        """
+
+        response = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a trading strategy parameter extraction expert. Respond with JSON only.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+        )
+
+        response_text = response.choices[0].message.content.strip()
+        result = json.loads(response_text)
+
         # Set default values if not found
-        if "fast_period" not in entities:
-            entities["fast_period"] = 20
-        if "slow_period" not in entities:
-            entities["slow_period"] = 50
-        
-        # Ensure the values are integers
-        fast_period = int(entities["fast_period"]) if "fast_period" in entities else 20
-        slow_period = int(entities["slow_period"]) if "slow_period" in entities else 50
-        
-        return {
-            "fast_period": fast_period,
-            "slow_period": slow_period
-        }
+        fast_period = result.get("fast_period", 20)
+        slow_period = result.get("slow_period", 50)
+
+        return {"fast_period": int(fast_period), "slow_period": int(slow_period)}
