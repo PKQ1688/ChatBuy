@@ -16,7 +16,7 @@ eggs/
 venv/
 
 poetry.lock
-data/
+dataset/
 output/
 
 .ruff_cache/

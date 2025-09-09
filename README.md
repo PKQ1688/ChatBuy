@@ -1,49 +1,107 @@
 # ChatBuy
 
-Use AI to implement subjective quantitative strategies. Strategies can be formulated through conversations, and backtesting can also be performed through conversations.
+🤖 Interactive Quantitative Trading System - Use AI to implement subjective quantitative strategies through natural language conversations.
 
-## 1. Installation (uv)
+## ✨ Features
 
-Recommended: manage the environment with uv.
+- **Natural Language Processing**: Convert Chinese strategy descriptions to executable code
+- **Strategy Generation**: Automatically create trading strategies from text descriptions
+- **Backtesting Engine**: High-performance backtesting with vectorbt
+- **Interactive Interface**: User-friendly CLI with rich output
+- **Data Management**: Fetch data from Yahoo Finance or load from CSV
+
+## 🚀 Quick Start
+
+### 1. Installation
 
 ```bash
-# create venv and install deps from pyproject + uv.lock
+# Create environment and install dependencies
 uv venv && source .venv/bin/activate
 uv sync --frozen
 
-# (optional) install package in editable mode for local imports
+# Install package in editable mode
 uv pip install -e .
 ```
 
-## 2. VectorBT Demo: ETH Dual Moving Average
-
-This repo includes a simple dual moving‑average backtest demo for ETH built with `vectorbt`.
-
-Run from the repo root:
+### 2. Interactive Demo
 
 ```bash
-# 2.1 Your own CSV (must contain Date and Close columns)
-uv run python scripts/eth_dual_ma_vectorbt.py --source csv --csv-path data/ETH-USD.csv --fast 20 --slow 50
+# Run the interactive interface
+uv run python scripts/chatbuy_demo.py
 
-# 2.2 Yahoo Finance (requires network and yfinance)
-uv add yfinance
-uv run python scripts/eth_dual_ma_vectorbt.py --source yfinance --symbol ETH-USD --start 2020-01-01 --interval 1d --plot
+# Run a simple demo
+uv run python scripts/simple_demo.py
 
-# 2.3 Grid search across windows
-uv run python scripts/eth_dual_ma_vectorbt.py --source yfinance \
-  --grid --fast-list 5,10,20,50 --slow-list 60,100,150,200 --top 10
+# Test all components
+uv run python scripts/test_components.py
 ```
 
-Notes
-- Fees are proportional (default 0.0007 = 7 bps per trade). Adjust via `--fees`.
-- Initial cash defaults to 10,000. Adjust via `--cash`.
-- Use `--plot` for an interactive Plotly equity curve and MA overlay. A heatmap is shown for grid runs.
-- For CSV input, the script detects typical date/close column names. Minimal format:
+### 3. Usage Examples
 
-```csv
-Date,Open,High,Low,Close,Volume
-2020-01-01,128.1,130.0,120.5,129.4,123456
-...
+Try these strategy descriptions:
+
+```
+双均线金叉买入，20日均线和50日均线
+快线10日，慢线30日，金叉买入死叉卖出
+短期均线交叉长期均线，快线20慢线60
 ```
 
-Disclaimer: This demo is for educational purposes and not financial advice.
+## 📁 Project Structure
+
+```
+chatbuy/
+├── nlp/                    # Natural language processing
+├── strategies/             # Strategy generation
+├── backtest/              # Backtesting engine
+├── data/                  # Data management
+├── ui/                    # User interface
+└── scripts/               # Demo scripts
+```
+
+## 🎯 Currently Supported Strategies
+
+- **Moving Average Crossover**: Dual moving average cross strategies
+- More strategies coming soon!
+
+## 📊 Backtesting Features
+
+- Performance metrics (Sharpe ratio, max drawdown, win rate)
+- Equity curve visualization
+- Trade analysis
+- Risk management
+
+## 🛠️ Development
+
+### Adding New Strategies
+
+1. Create strategy template in `chatbuy/strategies/templates/`
+2. Implement NLP patterns in `chatbuy/nlp/`
+3. Register in `StrategyFactory`
+
+### Testing
+
+```bash
+# Run component tests
+uv run python scripts/test_components.py
+
+# Run linting
+uv run ruff check . --fix
+uv run ruff format .
+```
+
+## 📚 Documentation
+
+- [Usage Guide](USAGE.md) - Detailed usage instructions
+- [Agent Guidelines](AGENTS.md) - Development guidelines
+
+## ⚠️ Disclaimer
+
+This system is for educational purposes only. Past performance does not guarantee future results. Please do your own research before making any investment decisions.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read the contributing guidelines and submit pull requests.
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
