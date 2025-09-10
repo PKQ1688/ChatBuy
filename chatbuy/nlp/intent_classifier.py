@@ -51,20 +51,14 @@ class IntentClassifier:
         Respond with only the JSON object, no other text.
         """
 
-        response = self.client.chat.completions.create(
+        response = self.client.responses.create(
             model=self.model_name,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a trading strategy expert. Respond with JSON only.",
-                },
-                {"role": "user", "content": prompt},
-            ],
+            input=prompt,
             temperature=self.temperature,
-            max_tokens=self.max_tokens,
+            max_output_tokens=self.max_tokens,
         )
 
-        response_text = response.choices[0].message.content.strip()
+        response_text = response.output_text.strip()
         result = json.loads(response_text)
 
         return StrategyIntent(

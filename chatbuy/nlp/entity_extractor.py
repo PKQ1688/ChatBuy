@@ -56,20 +56,14 @@ class EntityExtractor:
         Respond with only the JSON object, no other text.
         """
 
-        response = self.client.chat.completions.create(
+        response = self.client.responses.create(
             model=self.model_name,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a trading strategy parameter extraction expert. Respond with JSON only.",
-                },
-                {"role": "user", "content": prompt},
-            ],
+            input=prompt,
             temperature=self.temperature,
-            max_tokens=self.max_tokens,
+            max_output_tokens=self.max_tokens,
         )
 
-        response_text = response.choices[0].message.content.strip()
+        response_text = response.output_text.strip()
         result = json.loads(response_text)
 
         # Normalize symbol if present
@@ -116,20 +110,14 @@ class EntityExtractor:
         Respond with only the JSON object, no other text.
         """
 
-        response = self.client.chat.completions.create(
+        response = self.client.responses.create(
             model=self.model_name,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a trading strategy parameter extraction expert. Respond with JSON only.",
-                },
-                {"role": "user", "content": prompt},
-            ],
+            input=prompt,
             temperature=self.temperature,
-            max_tokens=self.max_tokens,
+            max_output_tokens=self.max_tokens,
         )
 
-        response_text = response.choices[0].message.content.strip()
+        response_text = response.output_text.strip()
         result = json.loads(response_text)
 
         # Set default values if not found
