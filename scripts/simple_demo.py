@@ -17,7 +17,7 @@ def demo_ma_strategy():
     # Step 1: Parse natural language
     console.print("[bold cyan]Step 1: Parsing natural language...[/bold cyan]")
     parser = StrategyParser()
-    strategy_desc = "双均线金叉买入，20日均线和50日均线"
+    strategy_desc = "双均线金叉买入，死叉卖出。5日均线和10日均线"
 
     console.print(f"Input: {strategy_desc}")
     config = parser.parse(strategy_desc)

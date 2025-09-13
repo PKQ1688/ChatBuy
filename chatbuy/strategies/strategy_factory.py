@@ -1,6 +1,7 @@
 from typing import Any
 
 from .base_strategy import BaseStrategy
+from .templates.dynamic_strategy import DynamicStrategy
 from .templates.moving_average import MovingAverageCrossStrategy
 
 
@@ -9,6 +10,7 @@ class StrategyFactory:
 
     _strategies: dict[str, type[BaseStrategy]] = {
         "moving_average_cross": MovingAverageCrossStrategy,
+        "dynamic_strategy": DynamicStrategy,
     }
 
     @classmethod
