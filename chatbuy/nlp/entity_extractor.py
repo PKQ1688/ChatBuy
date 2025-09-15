@@ -47,10 +47,10 @@ class EntityExtractor:
         - rsi_upper: Integer for RSI overbought threshold
         
         Examples:
-        - "双均线金叉买入，20日均线和50日均线" -> {{"fast_period": 20, "slow_period": 50}}
-        - "快线10日，慢线30日，金叉买入死叉卖出" -> {{"fast_period": 10, "slow_period": 30}}
-        - "RSI低于30买入" -> {{"rsi_lower": 30}}
-        - "BTC的双均线策略" -> {{"symbol": "BTC-USD", "fast_period": 20, "slow_period": 50}}
+        - "dual moving average golden cross buy, 20-day and 50-day moving average" -> {{"fast_period": 20, "slow_period": 50}}
+        - "fast line 10-day, slow line 30-day, golden cross buy death cross sell" -> {{"fast_period": 10, "slow_period": 30}}
+        - "RSI below 30 buy" -> {{"rsi_lower": 30}}
+        - "BTC dual moving average strategy" -> {{"symbol": "BTC-USD", "fast_period": 20, "slow_period": 50}}
         
         If a parameter is not mentioned, don't include it in the JSON. Use default values in the calling code.
         Respond with only the JSON object, no other text.
@@ -74,21 +74,8 @@ class EntityExtractor:
 
     def _normalize_symbol(self, symbol: str) -> str:
         """Normalize symbol names."""
-        symbol_map = {
-            "BTC": "BTC-USD",
-            "bitcoin": "BTC-USD",
-            "比特币": "BTC-USD",
-            "ETH": "ETH-USD",
-            "ethereum": "ETH-USD",
-            "以太坊": "ETH-USD",
-            "AAPL": "AAPL",
-            "apple": "AAPL",
-            "苹果": "AAPL",
-            "TSLA": "TSLA",
-            "tesla": "TSLA",
-            "特斯拉": "TSLA",
-        }
-        return symbol_map.get(symbol.lower(), symbol.upper())
+        # Let LLM handle symbol normalization, just return as-is
+        return symbol.upper()
 
     def extract_ma_parameters(self, text: str) -> dict[str, int]:
         """Specifically extract moving average parameters using LLM."""
@@ -102,10 +89,10 @@ class EntityExtractor:
         - slow_period: Integer for slow moving average period (default: 50 if not specified)
         
         Examples:
-        - "双均线金叉买入，20日均线和50日均线" -> {{"fast_period": 20, "slow_period": 50}}
-        - "快线10日，慢线30日" -> {{"fast_period": 10, "slow_period": 30}}
-        - "20和60日均线交叉" -> {{"fast_period": 20, "slow_period": 60}}
-        - "双均线策略" -> {{"fast_period": 20, "slow_period": 50}}
+        - "dual moving average golden cross buy, 20-day and 50-day moving average" -> {{"fast_period": 20, "slow_period": 50}}
+        - "fast line 10-day, slow line 30-day" -> {{"fast_period": 10, "slow_period": 30}}
+        - "20 and 60-day moving average crossover" -> {{"fast_period": 20, "slow_period": 60}}
+        - "dual moving average strategy" -> {{"fast_period": 20, "slow_period": 50}}
         
         Respond with only the JSON object, no other text.
         """

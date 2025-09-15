@@ -44,9 +44,9 @@ class IntentClassifier:
         - parameters: Any relevant parameters you can extract from the description
         
         Examples:
-        - "双均线金叉买入，20日均线和50日均线" -> {{"strategy_type": "moving_average_cross", "confidence": 0.95, "parameters": {{"fast_period": 20, "slow_period": 50}}}}
-        - "RSI低于30买入" -> {{"strategy_type": "rsi_oversold", "confidence": 0.9, "parameters": {{"rsi_lower": 30}}}}
-        - "布林带策略" -> {{"strategy_type": "bollinger_bands", "confidence": 0.85, "parameters": {{}}}}
+        - "dual moving average golden cross buy, 20-day and 50-day moving average" -> {{"strategy_type": "moving_average_cross", "confidence": 0.95, "parameters": {{"fast_period": 20, "slow_period": 50}}}}
+        - "RSI below 30 buy" -> {{"strategy_type": "rsi_oversold", "confidence": 0.9, "parameters": {{"rsi_lower": 30}}}}
+        - "Bollinger bands strategy" -> {{"strategy_type": "bollinger_bands", "confidence": 0.85, "parameters": {{}}}}
         
         Respond with only the JSON object, no other text.
         """

@@ -60,14 +60,14 @@ class StrategyParser:
         - Bollinger Bands: "bb_upper_20", "bb_lower_20", "bb_middle_20"
         
         Examples:
-        - "5日均线上穿20日均线时买入，下穿时卖出" -> 
-          {{"strategy_type": "dynamic_strategy", "parameters": {{"buy_conditions": [{{"indicator": "ma_5", "operator": "crosses_above", "other_indicator": "ma_20"}}], "sell_conditions": [{{"indicator": "ma_5", "operator": "crosses_below", "other_indicator": "ma_20"}}], "indicators_needed": {{"ma_periods": [5, 20]}}, "strategy_description": "5日均线上穿20日均线时买入，下穿时卖出"}}, "confidence": 0.95}}
-        
-        - "RSI低于30买入，高于70卖出" -> 
-          {{"strategy_type": "dynamic_strategy", "parameters": {{"buy_conditions": [{{"indicator": "rsi_14", "operator": "<", "value": 30}}], "sell_conditions": [{{"indicator": "rsi_14", "operator": ">", "value": 70}}], "indicators_needed": {{"rsi_periods": [14]}}, "strategy_description": "RSI低于30买入，高于70卖出"}}, "confidence": 0.9}}
-        
-        - "MACD金叉买入，死叉卖出" -> 
-          {{"strategy_type": "dynamic_strategy", "parameters": {{"buy_conditions": [{{"indicator": "macd_line", "operator": "crosses_above", "other_indicator": "macd_signal"}}], "sell_conditions": [{{"indicator": "macd_line", "operator": "crosses_below", "other_indicator": "macd_signal"}}], "indicators_needed": {{"macd": true}}, "strategy_description": "MACD金叉买入，死叉卖出"}}, "confidence": 0.9}}
+        - "5-day moving average crosses above 20-day moving average when buying, below when selling" ->
+          {{"strategy_type": "dynamic_strategy", "parameters": {{"buy_conditions": [{{"indicator": "ma_5", "operator": "crosses_above", "other_indicator": "ma_20"}}], "sell_conditions": [{{"indicator": "ma_5", "operator": "crosses_below", "other_indicator": "ma_20"}}], "indicators_needed": {{"ma_periods": [5, 20]}}, "strategy_description": "5-day moving average crosses above 20-day moving average when buying, below when selling"}}, "confidence": 0.95}}
+
+        - "RSI below 30 buy, above 70 sell" ->
+          {{"strategy_type": "dynamic_strategy", "parameters": {{"buy_conditions": [{{"indicator": "rsi_14", "operator": "<", "value": 30}}], "sell_conditions": [{{"indicator": "rsi_14", "operator": ">", "value": 70}}], "indicators_needed": {{"rsi_periods": [14]}}, "strategy_description": "RSI below 30 buy, above 70 sell"}}, "confidence": 0.9}}
+
+        - "MACD golden cross buy, death cross sell" ->
+          {{"strategy_type": "dynamic_strategy", "parameters": {{"buy_conditions": [{{"indicator": "macd_line", "operator": "crosses_above", "other_indicator": "macd_signal"}}], "sell_conditions": [{{"indicator": "macd_line", "operator": "crosses_below", "other_indicator": "macd_signal"}}], "indicators_needed": {{"macd": true}}, "strategy_description": "MACD golden cross buy, death cross sell"}}, "confidence": 0.9}}
         
         If the description is unclear or cannot be parsed as a dynamic strategy, set confidence to 0.0.
         Respond with only the JSON object, no other text.
@@ -112,10 +112,10 @@ class StrategyParser:
         - confidence: Float between 0.0 and 1.0
         
         Examples:
-        - "双均线金叉买入，20日均线和50日均线" -> {{"strategy_type": "moving_average_cross", "parameters": {{"fast_period": 20, "slow_period": 50}}, "confidence": 0.95}}
-        - "快线10日，慢线30日，金叉买入死叉卖出" -> {{"strategy_type": "moving_average_cross", "parameters": {{"fast_period": 10, "slow_period": 30}}, "confidence": 0.9}}
-        - "RSI低于30买入" -> {{"strategy_type": "rsi_oversold", "parameters": {{"rsi_lower": 30}}, "confidence": 0.9}}
-        - "布林带策略" -> {{"strategy_type": "bollinger_bands", "parameters": {{}}, "confidence": 0.85}}
+        - "dual moving average golden cross buy, 20-day and 50-day moving average" -> {{"strategy_type": "moving_average_cross", "parameters": {{"fast_period": 20, "slow_period": 50}}, "confidence": 0.95}}
+        - "fast line 10-day, slow line 30-day, golden cross buy death cross sell" -> {{"strategy_type": "moving_average_cross", "parameters": {{"fast_period": 10, "slow_period": 30}}, "confidence": 0.9}}
+        - "RSI below 30 buy" -> {{"strategy_type": "rsi_oversold", "parameters": {{"rsi_lower": 30}}, "confidence": 0.9}}
+        - "Bollinger bands strategy" -> {{"strategy_type": "bollinger_bands", "parameters": {{}}, "confidence": 0.85}}
         
         If parameters are not specified, use reasonable defaults:
         - moving_average_cross: fast_period=20, slow_period=50
@@ -191,10 +191,10 @@ class StrategyParser:
         - slow_period: Integer for slow moving average period (default: 50 if not specified)
         
         Examples:
-        - "双均线金叉买入，20日均线和50日均线" -> {{"fast_period": 20, "slow_period": 50}}
-        - "快线10日，慢线30日" -> {{"fast_period": 10, "slow_period": 30}}
-        - "20和60日均线交叉" -> {{"fast_period": 20, "slow_period": 60}}
-        - "双均线策略" -> {{"fast_period": 20, "slow_period": 50}}
+        - "dual moving average golden cross buy, 20-day and 50-day moving average" -> {{"fast_period": 20, "slow_period": 50}}
+        - "fast line 10-day, slow line 30-day" -> {{"fast_period": 10, "slow_period": 30}}
+        - "20 and 60-day moving average crossover" -> {{"fast_period": 20, "slow_period": 60}}
+        - "dual moving average strategy" -> {{"fast_period": 20, "slow_period": 50}}
         
         Respond with only the JSON object, no other text.
         """
