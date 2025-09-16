@@ -44,13 +44,15 @@ class VectorbtWrapper:
             "trades": portfolio.trades,
         }
 
-    def _calculate_stats(self, portfolio: Any, data: pd.DataFrame) -> dict[str, Any]:
+    def _calculate_stats(
+        self, portfolio: Any, data: pd.DataFrame
+    ) -> dict[str, Any]:
         """Calculate performance statistics.
 
         Also computes the instrument's own (buy-and-hold) return across the
         backtest period for quick comparison against the strategy.
         """
-        stats = {}
+        stats: dict[str, Any] = {}
 
         try:
             # Basic stats
@@ -69,19 +71,26 @@ class VectorbtWrapper:
                 # Manual calculation based on total return and time period
                 total_days = len(portfolio.returns())
                 if total_days > 0:
-                    years = total_days / 252  # Trading days in a year
-                    if years > 0:
+                    portfolio_years = total_days / 252  # Trading days in a year
+                    if portfolio_years > 0:
                         stats["annualized_return"] = (1 + stats["total_return"]) ** (
-                            1 / years
+                            1 / portfolio_years
                         ) - 1
 
             # Compute instrument (buy-and-hold) baseline
             try:
-                close = pd.to_numeric(data["Close"], errors="coerce").dropna()
-                instrument_total_return = None
-                instrument_annualized_return = None
-                if len(close) >= 2:
-                    instrument_total_return = close.iloc[-1] / close.iloc[0] - 1
+                # Ensure close_series is always a pandas Series before dropna/iloc
+                close_raw = pd.to_numeric(data["Close"], errors="coerce")
+                if not isinstance(close_raw, pd.Series):
+                    close_series = pd.Series(close_raw).dropna()
+                else:
+                    close_series = close_raw.dropna()
+                instrument_total_return: float | None = None
+                instrument_annualized_return: float | None = None
+                if len(close_series) >= 2:
+                    instrument_total_return = float(
+                        close_series.iloc[-1] / close_series.iloc[0] - 1
+                    )
 
                     # Determine period length in years
                     date_col = next(
@@ -98,7 +107,7 @@ class VectorbtWrapper:
                         ),
                         None,
                     )
-                    years = None
+                    years: float | None = None
                     if date_col is not None:
                         try:
                             start_ts = pd.to_datetime(data[date_col].min())
@@ -110,9 +119,17 @@ class VectorbtWrapper:
                             years = None
                     if years is None:
                         # Fallback using trading days
-                        years = len(close) / 252.0 if len(close) > 0 else None
+                        years = (
+                            len(close_series) / 252.0
+                            if len(close_series) > 0
+                            else None
+                        )
 
-                    if years and years > 0:
+                    if (
+                        years is not None
+                        and years > 0
+                        and instrument_total_return is not None
+                    ):
                         instrument_annualized_return = (
                             1 + instrument_total_return
                         ) ** (1 / years) - 1
