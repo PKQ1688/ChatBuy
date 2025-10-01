@@ -29,4 +29,7 @@ logs/
 .DS_Store
 .roo/
 
+AGENTS.md
+CLAUDE.md
+
 # .vscode/
