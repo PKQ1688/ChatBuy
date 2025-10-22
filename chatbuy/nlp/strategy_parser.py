@@ -1,9 +1,22 @@
 import json
 import os
-from typing import Any
+from typing import TypedDict
 
 import openai
 from dotenv import load_dotenv
+
+# Strategy parameter value types
+type StrategyParamValue = (
+    int | float | str | bool | list[dict[str, str | int | float]] | dict[str, list[int]]
+)
+
+
+class StrategyConfig(TypedDict):
+    """Type definition for strategy configuration."""
+
+    strategy_type: str
+    parameters: dict[str, StrategyParamValue]
+    confidence: float
 
 
 class StrategyParser:
@@ -21,7 +34,7 @@ class StrategyParser:
         self.temperature = float(os.getenv("TEMPERATURE", "0.1"))
         self.max_tokens = int(os.getenv("MAX_TOKENS", "1000"))
 
-    def parse(self, text: str) -> dict[str, Any] | None:
+    def parse(self, text: str) -> StrategyConfig | None:
         """Parse natural language description into strategy parameters using LLM."""
         # 首先尝试解析为动态策略
         dynamic_result = self._parse_as_dynamic_strategy(text)
@@ -31,13 +44,13 @@ class StrategyParser:
         # 如果动态策略解析失败，回退到传统策略解析
         return self._parse_as_traditional_strategy(text)
 
-    def _parse_as_dynamic_strategy(self, text: str) -> dict[str, Any] | None:
+    def _parse_as_dynamic_strategy(self, text: str) -> StrategyConfig | None:
         """Parse as dynamic strategy with arbitrary buy/sell conditions."""
         prompt = f"""
         You are a trading strategy expert. Analyze the following trading strategy description and extract buy/sell conditions.
-        
+
         User description: "{text}"
-        
+
         Please respond with a JSON object containing:
         - strategy_type: "dynamic_strategy"
         - parameters: A dictionary containing:
@@ -46,19 +59,19 @@ class StrategyParser:
             - indicators_needed: Dictionary of required indicators
             - strategy_description: Original description
         - confidence: Float between 0.0 and 1.0
-        
+
         Each condition object should have:
         - indicator: The indicator name (e.g., "ma_20", "rsi_14", "macd_line")
         - operator: Comparison operator (">", "<", ">=", "<=", "==", "cross_above", "cross_below", "crosses_above", "crosses_below")
         - value: Numeric value for comparison (for crossover operators, use "other_indicator" instead)
         - other_indicator: For crossover conditions, the other indicator to compare with
-        
+
         Example indicators:
         - Moving averages: "ma_5", "ma_10", "ma_20", "ma_50", "ma_200"
         - RSI: "rsi_14", "rsi_21"
         - MACD: "macd_line", "macd_signal", "macd_histogram"
         - Bollinger Bands: "bb_upper_20", "bb_lower_20", "bb_middle_20"
-        
+
         Examples:
         - "5-day moving average crosses above 20-day moving average when buying, below when selling" ->
           {{"strategy_type": "dynamic_strategy", "parameters": {{"buy_conditions": [{{"indicator": "ma_5", "operator": "crosses_above", "other_indicator": "ma_20"}}], "sell_conditions": [{{"indicator": "ma_5", "operator": "crosses_below", "other_indicator": "ma_20"}}], "indicators_needed": {{"ma_periods": [5, 20]}}, "strategy_description": "5-day moving average crosses above 20-day moving average when buying, below when selling"}}, "confidence": 0.95}}
@@ -68,7 +81,7 @@ class StrategyParser:
 
         - "MACD golden cross buy, death cross sell" ->
           {{"strategy_type": "dynamic_strategy", "parameters": {{"buy_conditions": [{{"indicator": "macd_line", "operator": "crosses_above", "other_indicator": "macd_signal"}}], "sell_conditions": [{{"indicator": "macd_line", "operator": "crosses_below", "other_indicator": "macd_signal"}}], "indicators_needed": {{"macd": true}}, "strategy_description": "MACD golden cross buy, death cross sell"}}, "confidence": 0.9}}
-        
+
         If the description is unclear or cannot be parsed as a dynamic strategy, set confidence to 0.0.
         Respond with only the JSON object, no other text.
         """
@@ -88,40 +101,42 @@ class StrategyParser:
                 result.get("strategy_type") == "dynamic_strategy"
                 and result.get("confidence", 0) > 0.7
             ):
-                return {
-                    "strategy_type": "dynamic_strategy",
-                    "parameters": result.get("parameters", {}),
-                    "confidence": float(result.get("confidence", 0.0)),
-                }
+                return StrategyConfig(
+                    {
+                        "strategy_type": "dynamic_strategy",
+                        "parameters": result.get("parameters", {}),
+                        "confidence": float(result.get("confidence", 0.0)),
+                    }
+                )
         except Exception:
             # If dynamic parsing fails, return None to fall back to traditional parsing
             pass
 
         return None
 
-    def _parse_as_traditional_strategy(self, text: str) -> dict[str, Any] | None:
+    def _parse_as_traditional_strategy(self, text: str) -> StrategyConfig | None:
         """Parse as traditional strategy for backward compatibility."""
         prompt = f"""
         You are a trading strategy expert. Analyze the following trading strategy description and extract all relevant information.
-        
+
         User description: "{text}"
-        
+
         Please respond with a JSON object containing:
         - strategy_type: One of ["moving_average_cross", "bollinger_bands", "rsi_oversold", "rsi_overbought", "unknown"]
         - parameters: Extracted parameters (fast_period, slow_period, symbol, rsi_period, rsi_lower, rsi_upper, etc.)
         - confidence: Float between 0.0 and 1.0
-        
+
         Examples:
         - "dual moving average golden cross buy, 20-day and 50-day moving average" -> {{"strategy_type": "moving_average_cross", "parameters": {{"fast_period": 20, "slow_period": 50}}, "confidence": 0.95}}
         - "fast line 10-day, slow line 30-day, golden cross buy death cross sell" -> {{"strategy_type": "moving_average_cross", "parameters": {{"fast_period": 10, "slow_period": 30}}, "confidence": 0.9}}
         - "RSI below 30 buy" -> {{"strategy_type": "rsi_oversold", "parameters": {{"rsi_lower": 30}}, "confidence": 0.9}}
         - "Bollinger bands strategy" -> {{"strategy_type": "bollinger_bands", "parameters": {{}}, "confidence": 0.85}}
-        
+
         If parameters are not specified, use reasonable defaults:
         - moving_average_cross: fast_period=20, slow_period=50
         - rsi_oversold: rsi_lower=30
         - rsi_overbought: rsi_upper=70
-        
+
         Respond with only the JSON object, no other text.
         """
 
@@ -145,17 +160,19 @@ class StrategyParser:
                 result.get("strategy_type"), parameters
             )
 
-            return {
-                "strategy_type": result.get("strategy_type"),
-                "parameters": parameters,
-                "confidence": float(result.get("confidence", 0.0)),
-            }
+            return StrategyConfig(
+                {
+                    "strategy_type": result.get("strategy_type"),
+                    "parameters": parameters,
+                    "confidence": float(result.get("confidence", 0.0)),
+                }
+            )
         except Exception:
             return None
 
     def _normalize_parameters(
-        self, strategy_type: str, parameters: dict[str, Any]
-    ) -> dict[str, Any]:
+        self, strategy_type: str, parameters: dict[str, StrategyParamValue]
+    ) -> dict[str, StrategyParamValue]:
         """Normalize and validate parameters based on strategy type."""
         if strategy_type == "moving_average_cross":
             # Ensure fast_period < slow_period
@@ -183,19 +200,19 @@ class StrategyParser:
         """Specifically parse moving average strategy parameters using LLM."""
         prompt = f"""
         You are a trading strategy parameter extraction expert. Extract moving average parameters from the following description.
-        
+
         User description: "{text}"
-        
+
         Please respond with a JSON object containing:
         - fast_period: Integer for fast moving average period (default: 20 if not specified)
         - slow_period: Integer for slow moving average period (default: 50 if not specified)
-        
+
         Examples:
         - "dual moving average golden cross buy, 20-day and 50-day moving average" -> {{"fast_period": 20, "slow_period": 50}}
         - "fast line 10-day, slow line 30-day" -> {{"fast_period": 10, "slow_period": 30}}
         - "20 and 60-day moving average crossover" -> {{"fast_period": 20, "slow_period": 60}}
         - "dual moving average strategy" -> {{"fast_period": 20, "slow_period": 50}}
-        
+
         Respond with only the JSON object, no other text.
         """
 
@@ -215,7 +232,7 @@ class StrategyParser:
 
         return {"fast_period": int(fast_period), "slow_period": int(slow_period)}
 
-    def validate_parameters(self, parameters: dict[str, Any]) -> bool:
+    def validate_parameters(self, parameters: dict[str, StrategyParamValue]) -> bool:
         """Validate extracted parameters."""
         if "fast_period" in parameters and "slow_period" in parameters:
             return parameters["fast_period"] < parameters["slow_period"]

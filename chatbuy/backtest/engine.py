@@ -1,11 +1,12 @@
-from typing import Any
-
 import pandas as pd
 from rich.console import Console
 from rich.panel import Panel
 
 from ..strategies.base_strategy import BaseStrategy
-from .vectorbt_wrapper import VectorbtWrapper
+from .vectorbt_wrapper import BacktestResults, VectorbtWrapper
+
+# Type alias for metadata
+type MetaValue = str | dict[str, str | None] | None
 
 
 class BacktestEngine:
@@ -22,7 +23,7 @@ class BacktestEngine:
         initial_cash: float = 10000.0,
         fees: float = 0.001,
         slippage: float = 0.001,
-    ) -> dict[str, Any] | None:
+    ) -> BacktestResults | None:
         """Run backtest for a given strategy."""
         try:
             # Validate data
@@ -49,7 +50,7 @@ class BacktestEngine:
             results["strategy"] = strategy.get_info()
 
             # Attach metadata: instrument and period
-            meta: dict[str, Any] = {
+            meta: dict[str, MetaValue] = {
                 "symbol": data.attrs.get("symbol"),
                 "instrument_name": data.attrs.get(
                     "instrument_name", data.attrs.get("symbol")
@@ -114,7 +115,7 @@ class BacktestEngine:
             )
         )
 
-    def print_full_results(self, results: dict[str, Any]) -> None:
+    def print_full_results(self, results: BacktestResults) -> None:
         """Print complete backtest results."""
         if results is None:
             return

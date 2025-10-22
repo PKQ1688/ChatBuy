@@ -4,10 +4,11 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Prompt
 from rich.table import Table
 
+from chatbuy.nlp.strategy_parser import StrategyParser
+
 from ..backtest.engine import BacktestEngine
 from ..data.fetcher import DataFetcher
 from ..data.processor import DataProcessor
-from ..nlp.strategy_parser import StrategyParser
 from ..strategies.strategy_factory import StrategyFactory
 
 

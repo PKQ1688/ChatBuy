@@ -6,7 +6,7 @@ from rich.console import Console
 from chatbuy.backtest.engine import BacktestEngine
 from chatbuy.data.fetcher import DataFetcher
 from chatbuy.data.processor import DataProcessor
-from chatbuy.nlp.strategy_parser import StrategyParser
+from chatbuy.nlp.strategy_parser import StrategyConfig, StrategyParser
 from chatbuy.strategies.strategy_factory import StrategyFactory
 
 
@@ -20,7 +20,7 @@ def demo_ma_strategy():
     strategy_desc = "双均线金叉买入，死叉卖出。5日均线和10日均线"
 
     console.print(f"Input: {strategy_desc}")
-    config = parser.parse(strategy_desc)
+    config: StrategyConfig | None = parser.parse(strategy_desc)
 
     if config:
         console.print(f"[green]✓ Strategy type: {config['strategy_type']}[/green]")

@@ -1,13 +1,17 @@
 from abc import ABC, abstractmethod
-from typing import Any
 
 import pandas as pd
+
+# Strategy parameter value types
+type StrategyParamValue = (
+    int | float | str | bool | list[dict[str, str | int | float]] | dict[str, list[int]]
+)
 
 
 class BaseStrategy(ABC):
     """Base class for all trading strategies."""
 
-    def __init__(self, parameters: dict[str, Any]):
+    def __init__(self, parameters: dict[str, StrategyParamValue]):
         self.parameters = parameters
         self.name = self.__class__.__name__
 
@@ -25,7 +29,7 @@ class BaseStrategy(ABC):
         """Validate strategy parameters."""
         return True
 
-    def get_info(self) -> dict[str, Any]:
+    def get_info(self) -> dict[str, str | dict[str, StrategyParamValue]]:
         """Get strategy information."""
         return {
             "name": self.name,

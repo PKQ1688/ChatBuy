@@ -1,7 +1,8 @@
-from typing import Any
-
 import pandas as pd
 from rich.console import Console
+
+# Type alias for data info dictionary values
+type DataInfoValue = int | list[str] | dict[str, int] | dict[str, pd.Timestamp] | None
 
 
 class DataProcessor:
@@ -27,7 +28,7 @@ class DataProcessor:
             return False
 
         # Check for missing values
-        if data["Close"].isnull().any():
+        if bool(data["Close"].isnull().any()):
             self.console.print(
                 "[yellow]Warning: Missing values found in Close prices[/yellow]"
             )
@@ -60,7 +61,7 @@ class DataProcessor:
         self.console.print(f"[green]Data cleaned: {len(df)} rows remaining[/green]")
         return df
 
-    def get_data_info(self, data: pd.DataFrame) -> dict[str, Any]:
+    def get_data_info(self, data: pd.DataFrame) -> dict[str, DataInfoValue]:
         """Get basic information about the data."""
         if data is None or len(data) == 0:
             return {}

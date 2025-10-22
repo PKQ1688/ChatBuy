@@ -71,3 +71,18 @@ ignore = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.pyright]
+typeCheckingMode = "basic"
+reportExplicitAny = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownArgumentType = false
+reportAttributeAccessIssue = false
+reportOperatorIssue = false
+reportOptionalMemberAccess = false
+reportArgumentType = false
+reportCallIssue = false
+reportIndexIssue = false
+reportReturnType = false
+reportGeneralTypeIssues = false

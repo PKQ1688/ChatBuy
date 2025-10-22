@@ -1,8 +1,12 @@
-from typing import Any
-
 from .base_strategy import BaseStrategy
 from .templates.dynamic_strategy import DynamicStrategy
 from .templates.moving_average import MovingAverageCrossStrategy
+
+# Strategy parameter value types
+type StrategyParamValue = (
+    int | float | str | bool | list[dict[str, str | int | float]] | dict[str, list[int]]
+)
+type StrategyParameters = dict[str, StrategyParamValue]
 
 
 class StrategyFactory:
@@ -15,7 +19,7 @@ class StrategyFactory:
 
     @classmethod
     def create_strategy(
-        cls, strategy_type: str, parameters: dict[str, Any]
+        cls, strategy_type: str, parameters: StrategyParameters
     ) -> BaseStrategy | None:
         """Create a strategy instance based on type and parameters."""
         if strategy_type not in cls._strategies:

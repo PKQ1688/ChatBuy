@@ -1,14 +1,12 @@
-from typing import Any
-
 import pandas as pd
 
-from ..base_strategy import BaseStrategy
+from ..base_strategy import BaseStrategy, StrategyParamValue
 
 
 class DynamicStrategy(BaseStrategy):
     """动态策略生成器，支持任意买卖条件."""
 
-    def __init__(self, parameters: dict[str, Any]):
+    def __init__(self, parameters: dict[str, StrategyParamValue]):
         super().__init__(parameters)
         self.buy_conditions = parameters.get("buy_conditions", [])
         self.sell_conditions = parameters.get("sell_conditions", [])
@@ -35,18 +33,21 @@ class DynamicStrategy(BaseStrategy):
 
         # 计算RSI
         for period in self.indicators_needed.get("rsi_periods", []):
-            df[f"rsi_{period}"] = self._calculate_rsi(df["Close"], period)
+            rsi_series: pd.Series = df["Close"]  # type: ignore[assignment]
+            df[f"rsi_{period}"] = self._calculate_rsi(rsi_series, period)
 
         # 计算布林带
         for period in self.indicators_needed.get("bb_periods", []):
-            bb_upper, bb_lower = self._calculate_bollinger_bands(df["Close"], period)
+            close_series: pd.Series = df["Close"]  # type: ignore[assignment]
+            bb_upper, bb_lower = self._calculate_bollinger_bands(close_series, period)
             df[f"bb_upper_{period}"] = bb_upper
             df[f"bb_lower_{period}"] = bb_lower
             df[f"bb_middle_{period}"] = df["Close"].rolling(window=period).mean()
 
         # 计算MACD
         if self.indicators_needed.get("macd", False):
-            macd_line, signal_line, histogram = self._calculate_macd(df["Close"])
+            close_series: pd.Series = df["Close"]  # type: ignore[assignment]
+            macd_line, signal_line, histogram = self._calculate_macd(close_series)
             df["macd_line"] = macd_line
             df["macd_signal"] = signal_line
             df["macd_histogram"] = histogram
@@ -128,8 +129,8 @@ class DynamicStrategy(BaseStrategy):
         gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
         rs = gain / loss
-        rsi = 100 - (100 / (1 + rs))
-        return rsi
+        rsi_result = 100 - (100 / (1 + rs))
+        return pd.Series(rsi_result)
 
     def _calculate_bollinger_bands(
         self, prices: pd.Series, period: int = 20, std_dev: float = 2
@@ -152,7 +153,15 @@ class DynamicStrategy(BaseStrategy):
         histogram = macd_line - signal_line
         return macd_line, signal_line, histogram
 
-    def get_info(self) -> dict[str, Any]:
+    def get_info(
+        self,
+    ) -> dict[
+        str,
+        str
+        | list[dict[str, str | int | float]]
+        | dict[str, list[int]]
+        | dict[str, StrategyParamValue],
+    ]:
         """获取策略信息."""
         info = super().get_info()
         info.update(
@@ -170,7 +179,9 @@ class StrategyConditionParser:
     """策略条件解析器，将自然语言条件转换为可执行的条件."""
 
     @staticmethod
-    def parse_buy_sell_conditions(text: str) -> dict[str, Any]:
+    def parse_buy_sell_conditions(
+        text: str,
+    ) -> dict[str, str | list[dict[str, str | int | float]] | dict[str, list[int]]]:
         """解析买卖条件文本."""
         # 这里使用LLM来解析自然语言条件
         # 为了演示，我们先提供一个简化的解析逻辑

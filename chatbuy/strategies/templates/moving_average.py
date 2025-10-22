@@ -1,14 +1,12 @@
-from typing import Any
-
 import pandas as pd
 
-from ..base_strategy import BaseStrategy
+from ..base_strategy import BaseStrategy, StrategyParamValue
 
 
 class MovingAverageCrossStrategy(BaseStrategy):
     """Moving Average Crossover Strategy."""
 
-    def __init__(self, parameters: dict[str, Any]):
+    def __init__(self, parameters: dict[str, StrategyParamValue]):
         super().__init__(parameters)
         self.fast_period = parameters.get("fast_period", 20)
         self.slow_period = parameters.get("slow_period", 50)
@@ -54,7 +52,7 @@ class MovingAverageCrossStrategy(BaseStrategy):
 
         return signals
 
-    def get_info(self) -> dict[str, Any]:
+    def get_info(self) -> dict[str, str | int | dict[str, StrategyParamValue]]:
         """Get strategy information."""
         info = super().get_info()
         info.update(

@@ -1,10 +1,14 @@
 import json
 import os
 from dataclasses import dataclass
-from typing import Any
 
 import openai
 from dotenv import load_dotenv
+
+# Strategy parameter value types
+type StrategyParamValue = (
+    int | float | str | bool | list[dict[str, str | int | float]] | dict[str, list[int]]
+)
 
 
 @dataclass
@@ -12,7 +16,7 @@ class StrategyIntent:
     """Strategy intent extracted from text."""
 
     strategy_type: str
-    parameters: dict[str, Any]
+    parameters: dict[str, StrategyParamValue]
     confidence: float
 
 
@@ -35,19 +39,19 @@ class IntentClassifier:
         """Classify the user's intent from text description using LLM."""
         prompt = f"""
         You are a trading strategy expert. Analyze the following trading strategy description and classify it.
-        
+
         User description: "{text}"
-        
+
         Please respond with a JSON object containing:
         - strategy_type: One of ["moving_average_cross", "bollinger_bands", "rsi_oversold", "rsi_overbought", "unknown"]
         - confidence: A float between 0.0 and 1.0 indicating your confidence in the classification
         - parameters: Any relevant parameters you can extract from the description
-        
+
         Examples:
         - "dual moving average golden cross buy, 20-day and 50-day moving average" -> {{"strategy_type": "moving_average_cross", "confidence": 0.95, "parameters": {{"fast_period": 20, "slow_period": 50}}}}
         - "RSI below 30 buy" -> {{"strategy_type": "rsi_oversold", "confidence": 0.9, "parameters": {{"rsi_lower": 30}}}}
         - "Bollinger bands strategy" -> {{"strategy_type": "bollinger_bands", "confidence": 0.85, "parameters": {{}}}}
-        
+
         Respond with only the JSON object, no other text.
         """
 

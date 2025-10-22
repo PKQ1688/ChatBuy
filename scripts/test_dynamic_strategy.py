@@ -11,7 +11,7 @@ from rich.panel import Panel
 
 from chatbuy.backtest.engine import BacktestEngine
 from chatbuy.data.fetcher import DataFetcher
-from chatbuy.nlp.strategy_parser import StrategyParser
+from chatbuy.nlp.strategy_parser import StrategyConfig, StrategyParser
 from chatbuy.strategies.strategy_factory import StrategyFactory
 
 console = Console()
@@ -40,7 +40,7 @@ def test_dynamic_strategy():
         try:
             # 1. 解析策略
             console.print("  📝 正在解析策略...")
-            parsed_result = parser.parse(test_case)
+            parsed_result: StrategyConfig | None = parser.parse(test_case)
 
             if not parsed_result:
                 console.print("  ❌ 策略解析失败")
