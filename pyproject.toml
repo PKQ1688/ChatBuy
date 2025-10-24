@@ -18,6 +18,7 @@ dependencies = [
     "yfinance>=0.2.65",
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
+    "gradio>=5.49.1",
 ]
 authors = [
   {name = "adofe", email = "adofezhu@gmail.com"}

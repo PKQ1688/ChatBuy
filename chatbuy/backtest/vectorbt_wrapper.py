@@ -76,9 +76,7 @@ class VectorbtWrapper:
 
         return stats
 
-    def _calculate_base_portfolio_stats(
-        self, portfolio: Any, stats: StatsDict
-    ) -> None:
+    def _calculate_base_portfolio_stats(self, portfolio: Any, stats: StatsDict) -> None:
         """Calculates basic stats from the portfolio object."""
         stats["total_return"] = portfolio.total_return()
         stats["annualized_return"] = portfolio.annualized_return()
@@ -219,9 +217,7 @@ class VectorbtWrapper:
 
         self.console.print(table)
 
-    def plot_equity_curve(
-        self, results: BacktestResults, show: bool = True
-    ) -> Any:
+    def plot_equity_curve(self, results: BacktestResults, show: bool = True) -> Any:
         """Plot equity curve."""
         try:
             equity_curve = results["equity_curve"]

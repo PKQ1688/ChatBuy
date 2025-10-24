@@ -24,10 +24,19 @@ uv sync --frozen
 uv pip install -e .
 ```
 
-### 2. Interactive Demo
+### 2. Run the Application
 
+#### Option A: Web Interface (Recommended)
 ```bash
-# Run the interactive interface
+# Run the Gradio web interface
+uv run python scripts/run_gradio_app.py
+
+# The app will automatically open in your browser at http://localhost:7860
+```
+
+#### Option B: Command Line Interface
+```bash
+# Run the CLI interface
 uv run python scripts/chatbuy_demo.py
 
 # Run a simple demo
@@ -62,13 +71,17 @@ chatbuy/
 ├── backtest/              # Backtesting engine
 ├── data/                  # Data management
 ├── ui/                    # User interface
-└── scripts/               # Demo scripts
+│   ├── cli.py             # Command line interface
+│   ├── gradio_app.py      # Web interface (Gradio)
+│   ├── components/        # UI components
+│   └── utils/             # UI utilities
+└── scripts/               # Demo and launch scripts
 ```
 
 ## 🎯 Currently Supported Strategies
 
 - **Dynamic Strategy Generation**: Any buy/sell conditions you can describe
-- **Moving Average Crossover**: Fast and slow moving average cross strategies  
+- **Moving Average Crossover**: Fast and slow moving average cross strategies
 - **RSI Strategies**: RSI oversold/overbought strategies
 - **MACD Strategies**: MACD signal line crossover strategies
 - **Bollinger Bands**: Price band-based strategies
@@ -83,9 +96,11 @@ chatbuy/
 ## 📊 Backtesting Features
 
 - Performance metrics (Sharpe ratio, max drawdown, win rate)
-- Equity curve visualization
-- Trade analysis
+- Interactive equity curve visualization
+- Detailed trade analysis
 - Risk management
+- Real-time strategy preview
+- Web-based user interface
 
 ## 🛠️ Development
 

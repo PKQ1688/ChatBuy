@@ -16,71 +16,97 @@ uv pip install -e .
 uv add <pkg> / uv remove <pkg>
 ```
 
+### Running the Application
+
+#### Web Interface (Primary)
+```bash
+# Run Gradio web interface (recommended)
+uv run python scripts/run_gradio_app.py
+# Opens at http://localhost:7860 automatically
+```
+
+#### CLI Interface
+```bash
+# Interactive CLI demo
+uv run python scripts/chatbuy_demo.py
+
+# Simple demo with predefined examples
+uv run python scripts/simple_demo.py
+```
+
 ### Testing and Quality Assurance
 ```bash
 # Run component tests
 uv run python scripts/test_components.py
 
+# Test dynamic strategy generation
+uv run python scripts/test_dynamic_strategy.py
+
+# Test Gradio interface
+uv run python scripts/test_gradio.py
+
 # Run linting and formatting
 uv run ruff check . --fix
 uv run ruff format .
-
-# Run demo scripts
-uv run python scripts/chatbuy_demo.py
-uv run python scripts/simple_demo.py
 ```
 
 ## Project Architecture
 
-ChatBuy is an interactive quantitative trading system that converts natural language strategy descriptions into executable backtests. The system uses a modular architecture with these key components:
+ChatBuy is an interactive quantitative trading system that converts Chinese natural language strategy descriptions into executable backtests. The system features dynamic strategy generation and dual interface support.
 
 ### Core Modules
-- **NLP Module** (`chatbuy/nlp/`): Processes natural language descriptions using OpenAI's API to extract strategy parameters
-- **Strategy Factory** (`chatbuy/strategies/`): Creates trading strategy instances using factory pattern
-- **Backtest Engine** (`chatbuy/backtest/`): Executes strategies using vectorbt for high-performance backtesting
-- **Data Management** (`chatbuy/data/`): Fetches market data from Yahoo Finance or CSV files
-- **UI Module** (`chatbuy/ui/`): Provides CLI interface with rich output formatting
+- **NLP Module** (`chatbuy/nlp/`): Processes Chinese strategy descriptions using OpenAI's API to extract parameters
+- **Strategy Factory** (`chatbuy/strategies/`): Dynamic strategy generation using factory pattern
+- **Backtest Engine** (`chatbuy/backtest/`): High-performance backtesting with vectorbt
+- **Data Management** (`chatbuy/data/`): Fetches market data from Yahoo Finance, processes with pandas
+- **UI Module** (`chatbuy/ui/`): Dual interface - Gradio web app and rich CLI
 
 ### Key Patterns
-- **Factory Pattern**: StrategyFactory creates strategy instances based on parsed NLP output
-- **Template Pattern**: BaseStrategy defines interface, specific strategies implement generate_signals() and calculate_indicators()
-- **Wrapper Pattern**: VectorbtWrapper encapsulates vectorbt operations for cleaner API
-- **LLM Integration**: StrategyParser uses OpenAI API to convert Chinese trading descriptions to structured parameters
+- **Dynamic Strategy Generation**: Single `DynamicStrategy` class handles arbitrary buy/sell conditions
+- **Factory Pattern**: StrategyFactory creates strategy instances based on NLP parsing
+- **Template Pattern**: BaseStrategy defines interface, implementations handle signal generation
+- **LLM Integration**: StrategyParser uses OpenAI API for Chinese language processing
+- **Dual Interface Architecture**: Shared backend components serve both web and CLI interfaces
 
-### Current Strategy Support
-- Moving average crossover strategies (dual MA)
-- RSI-based strategies (oversold/overbought)
-- Bollinger bands strategies
+### Dynamic Strategy System
+The system now uses a single `DynamicStrategy` class that can handle any combination of:
+- Moving averages (any period)
+- RSI indicators (any period)
+- MACD signals
+- Bollinger Bands
+- Custom condition combinations
 
 ### Data Flow
-1. User inputs strategy description in Chinese
-2. NLP parser extracts parameters using LLM
-3. Strategy factory creates appropriate strategy instance
-4. Data fetcher retrieves market data
-5. Backtest engine executes strategy and generates metrics
-6. Results displayed with rich CLI formatting
+1. User inputs Chinese strategy description via web/CLI
+2. NLP parser extracts strategy parameters using LLM
+3. Strategy factory creates `DynamicStrategy` instance
+4. Data fetcher retrieves market data (Yahoo Finance)
+5. Backtest engine executes strategy and generates comprehensive metrics
+6. Results displayed via rich CLI or interactive web interface
 
 ## Development Guidelines
 
-### Adding New Strategies
-1. Create strategy class inheriting from BaseStrategy in `chatbuy/strategies/templates/`
-2. Implement `generate_signals()` and `calculate_indicators()` methods
-3. Register strategy in StrategyFactory._strategies dictionary
-4. Update NLP parser prompt to recognize new strategy types
-
 ### Environment Configuration
-- Requires OpenAI API key in environment variables (API_KEY, MODEL_URL, MODEL_NAME)
-- Uses vectorbt for backtesting, yfinance for data fetching
+- Requires OpenAI API key in environment variables: `API_KEY`, `MODEL_URL`, `MODEL_NAME`
+- Uses vectorbt for backtesting, yfinance for data fetching, gradio for web UI
 - Configuration loaded via python-dotenv
 
-### Code Style
+### Code Style and Standards
 - Python 3.12+ with type hints required
 - Google-style docstrings (pydocstyle configured in pyproject.toml)
 - Double quotes for strings, 4-space indentation
 - Ruff for linting and formatting (configuration in pyproject.toml)
+- Basic type checking with pyright (non-strict mode)
+
+### Architecture Principles
+- **KISS**: Simple, straightforward implementations
+- **DRY**: Shared backend components for web/CLI interfaces
+- **SOLID**: Clear separation of concerns between modules
+- **YAGNI**: Feature-focused development without over-engineering
 
 ### Important Notes
-- The system is designed for Chinese language strategy descriptions
-- All strategies must validate parameters before execution
-- Backtest results include performance metrics, equity curves, and trade analysis
-- Error handling is built into all major components
+- System optimized for Chinese language strategy descriptions
+- All strategies validate parameters before execution
+- Comprehensive error handling throughout the pipeline
+- Web interface provides real-time strategy preview and interactive charts
+- Backtest results include performance metrics, equity curves, and detailed trade analysis
